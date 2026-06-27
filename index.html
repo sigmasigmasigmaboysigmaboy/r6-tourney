@@ -451,33 +451,6 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-/* ================= TEMPORARY DATA MIGRATION SCRIPTER ================= */
-import { getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-
-async function migrateOldData() {
-    const oldDocRef = doc(db, "leaderboard", "players");
-    try {
-        const oldSnap = await getDoc(oldDocRef);
-        if (oldSnap.exists()) {
-            const oldData = oldSnap.data();
-            const oldPlayersList = oldData.players || [];
-            
-            if (oldPlayersList.length > 0) {
-                // Merge old players into the default arena if it's currently empty
-                if (databaseState.tournaments["default_arena"].players.length === 0) {
-                    databaseState.tournaments["default_arena"].players = oldPlayersList;
-                    await saveState();
-                    console.log("Migration successful! Old player data has been ported over.");
-                    alert("Old tournament data successfully recovered and migrated!");
-                }
-            }
-        }
-    } catch (err) {
-        console.error("Migration error: ", err);
-    }
-}
-// Run it automatically on load
-setTimeout(migrateOldData, 2000);
 
 const firebaseConfig = {
     apiKey: "AIzaSyCB88kRN8uPwJc8q_KcGqlmPA9rBCF58ro",
