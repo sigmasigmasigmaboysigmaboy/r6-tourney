@@ -23,8 +23,9 @@
         --silver: #bdc3c7;
         --bronze: #e67e22;
         
-        /* Row Dimensions */
+        /* Row Dimensions (Altered for sliding layout calculation with spacing gaps included) */
         --row-height: 54px;
+        --row-gap: 8px;
     }
 
     * {
@@ -99,7 +100,7 @@
         font-size: 0.85rem;
         letter-spacing: 1px;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 6px; /* Slightly more rounded buttons */
+        border-radius: 6px;
     }
 
     button:active {
@@ -138,7 +139,7 @@
         background: var(--bg-input);
         border: 1px solid var(--border);
         color: white;
-        border-radius: 6px; /* Rounded inputs */
+        border-radius: 6px;
         font-size: 0.9rem;
         transition: all 0.2s ease;
     }
@@ -150,11 +151,11 @@
         background: #20222a;
     }
 
-    /* Panel Content Containers - Fully Rounded Panels */
+    /* Panel Content Containers */
     .view-panel {
         background: var(--bg-card);
         padding: 25px;
-        border-radius: 16px; /* Deep rounded card corners */
+        border-radius: 16px;
         box-shadow: 0 10px 35px rgba(0,0,0,0.8);
         border: 1px solid var(--border);
         margin-top: 20px;
@@ -185,8 +186,7 @@
         display: grid;
         width: 100%;
         min-width: 800px;
-        border-radius: 12px; /* Smooth container edges */
-        overflow: hidden;
+        border-radius: 12px;
     }
 
     .public-grid .grid-header, 
@@ -209,33 +209,35 @@
         letter-spacing: 1px;
         font-weight: 700;
         padding: 14px 16px;
-        border-bottom: 2px solid var(--border);
+        margin-bottom: 12px; /* Leaves clear spacing below headers */
     }
 
     .grid-body {
         display: block;
         position: relative;
         width: 100%;
-        margin-top: 5px; /* Tiny gap under header for card style look */
     }
 
-    /* Grid Row Formatting - Smooth capsules */
+    /* Grid Row Formatting - Added Red Outlines and Explicit Row Separation */
     .grid-row {
         position: absolute;
         left: 0;
         width: 100%;
         height: var(--row-height);
         align-items: center;
-        border-bottom: 1px solid transparent; /* Replaced default divider border */
-        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
-        background: rgba(25, 27, 34, 0.4);
-        border-radius: 8px; /* Rounded pill rows */
-        margin-bottom: 4px;
+        
+        /* Red outline border implementation */
+        border: 1px solid rgba(231, 76, 60, 0.4); 
+        
+        background: rgba(20, 21, 26, 0.7);
+        border-radius: 8px;
+        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .grid-row:hover {
-        background: rgba(231, 76, 60, 0.08); /* Faint red glow highlight */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background: rgba(231, 76, 60, 0.12);
+        border-color: var(--accent); /* Glow intensely on pointer hover */
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
     }
 
     .grid-row > div {
@@ -250,7 +252,7 @@
     .grid-row input {
         width: 100%;
         padding: 6px 10px;
-        border-radius: 4px; /* Slightly rounded inputs inside row edit */
+        border-radius: 4px;
     }
 
     .grid-row input[type="number"] {
@@ -280,7 +282,8 @@
     .overflow-container {
         overflow-x: auto;
         width: 100%;
-        border-radius: 12px; /* Ensures scroll area keeps corners tidy */
+        border-radius: 12px;
+        padding: 4px; /* Tiny padding prevents row outlines from being clipped by scroll frame boxes */
     }
 
     #adminPanel { display: none; }
