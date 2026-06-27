@@ -66,7 +66,6 @@
         margin-bottom: 30px;
         border-bottom: 2px solid var(--border);
         padding-bottom: 20px;
-        animation: fadeInDown 0.6s ease-out;
         text-align: center;
     }
 
@@ -119,7 +118,7 @@
         text-transform: uppercase;
         font-size: 0.85rem;
         letter-spacing: 1px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         border-radius: 6px;
     }
 
@@ -146,7 +145,6 @@
         color: white;
         border-radius: 6px;
         font-size: 0.9rem;
-        transition: all 0.2s ease;
     }
     input:focus {
         outline: none;
@@ -190,7 +188,7 @@
         align-items: center;
     }
 
-    /* Column Sizing Rules */
+    /* Fixed Layout Grids to prevent overlapping column text bugs */
     .grid-table {
         display: grid;
         width: 100%;
@@ -199,13 +197,13 @@
     }
 
     .public-grid .grid-header, .public-grid .grid-row {
-        display: grid;
-        grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1.2fr 1fr 1fr 1fr;
+        display: grid !important;
+        grid-template-columns: 1fr 2.5fr 1fr 1fr 1.2fr 1fr 1fr 1fr !important;
     }
 
     .admin-grid .grid-header, .admin-grid .grid-row {
-        display: grid;
-        grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr;
+        display: grid !important;
+        grid-template-columns: 1fr 2.5fr 1fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr !important;
     }
 
     .grid-header > div {
@@ -234,11 +232,7 @@
         border: 1px solid rgba(231, 76, 60, 0.4); 
         background: rgba(20, 21, 26, 0.7);
         border-radius: 8px;
-        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, border-color 0.2s ease;
-    }
-    .grid-row:hover {
-        background: rgba(231, 76, 60, 0.12);
-        border-color: var(--accent);
+        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     .grid-row > div {
@@ -252,25 +246,24 @@
     .grid-row input { width: 100%; padding: 6px 10px; border-radius: 4px; }
     .grid-row input[type="number"] { text-align: center; }
 
-    .rank-1 { color: var(--gold) !important; font-weight: bold; text-shadow: 0 0 8px rgba(241, 196, 21, 0.3); }
+    .rank-1 { color: var(--gold) !important; font-weight: bold; }
     .rank-2 { color: var(--silver) !important; font-weight: bold; }
     .rank-3 { color: var(--bronze) !important; font-weight: bold; }
 
-    /* ================= VISUAL TREE BRACKET SYSTEM UI ================= */
+    /* ================= TOURNAMENT TREE VIEWPORT ================= */
     .bracket-container {
         display: flex;
         gap: 40px;
         margin-top: 30px;
         padding: 10px;
         min-width: max-content;
-        justify-content: flex-start;
     }
 
     .bracket-round {
         display: flex;
         flex-direction: column;
         justify-content: space-around;
-        width: 240px;
+        width: 260px;
     }
 
     .bracket-round-title {
@@ -336,7 +329,6 @@
     }
 
     .public-team-name { font-weight: 600; }
-    
     .bye-slot { color: var(--text-muted) !important; font-style: italic; }
 
     .overflow-container {
@@ -411,7 +403,7 @@
             <span style="font-weight: bold; color: var(--accent); text-transform: uppercase; font-size: 0.85rem;">Create New Tournament Arena</span>
             <div class="inline-form">
                 <input id="newTourneyName" placeholder="e.g., Challenger Cup">
-                <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams (e.g. 5, 11, 16)" min="2" style="width: 250px;">
+                <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams (e.g. 5, 12, 16)" min="2" style="width: 250px;">
                 <button onclick="createNewTournament()">Generate Tournament</button>
             </div>
         </div>
@@ -484,7 +476,6 @@ const db = getFirestore(app);
 
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-/* ================= APP CORE SYSTEM STATE ================= */
 const ADMIN_PASSWORD = "admin123";
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
@@ -500,7 +491,6 @@ let databaseState = {
     }
 };
 
-// Formulates complete map nodes required based on closest next power-of-2 tree sizing
 function getNextPowerOfTwo(n) {
     if (n <= 2) return 2;
     if (n <= 4) return 4;
@@ -509,57 +499,81 @@ function getNextPowerOfTwo(n) {
     return 32;
 }
 
+// Generates correct standard tournament pairings (e.g. 1 vs 16, 8 vs 9, etc.)
+function getStandardSeedOrder(size) {
+    let order = [1, 2];
+    while (order.length < size) {
+        let nextOrder = [];
+        let target = order.length * 2 + 1;
+        for (let i = 0; i < order.length; i++) {
+            nextOrder.push(order[i]);
+            nextOrder.push(target - order[i]);
+        }
+        order = nextOrder;
+    }
+    return order;
+}
+
 function generateTreeStructure(teamCount) {
     const p2Size = getNextPowerOfTwo(teamCount);
     const nodes = {};
     
-    // Always build structure down to Grand Finals
+    // Core rounds initialized
     nodes["f_t1"] = "TBD"; nodes["f_t2"] = "TBD"; nodes["f_s1"] = "0"; nodes["f_s2"] = "0";
     nodes["s1_t1"] = "TBD"; nodes["s1_t2"] = "TBD"; nodes["s1_s1"] = "0"; nodes["s1_s2"] = "0";
     nodes["s2_t1"] = "TBD"; nodes["s2_t2"] = "TBD"; nodes["s2_s1"] = "0"; nodes["s2_s2"] = "0";
 
-    if (p2Size >= 8) {
-        for (let i = 1; i <= 4; i++) {
-            nodes[`q${i}_t1`] = "TBD"; nodes[`q${i}_t2`] = "TBD";
-            nodes[`q${i}_s1`] = "0"; nodes[`q${i}_s2`] = "0";
-        }
+    for (let i = 1; i <= 4; i++) {
+        nodes[`q${i}_t1`] = "TBD"; nodes[`q${i}_t2`] = "TBD";
+        nodes[`q${i}_s1`] = "0"; nodes[`q${i}_s2`] = "0";
     }
-    if (p2Size >= 16) {
-        for (let i = 1; i <= 8; i++) {
-            nodes[`r1_${i}_t1`] = "TBD"; nodes[`r1_${i}_t2`] = "TBD";
-            nodes[`r1_${i}_s1`] = "0"; nodes[`r1_${i}_s2`] = "0";
-        }
+    for (let i = 1; i <= 8; i++) {
+        nodes[`r1_${i}_t1`] = "TBD"; nodes[`r1_${i}_t2`] = "TBD";
+        nodes[`r1_${i}_s1`] = "0"; nodes[`r1_${i}_s2`] = "0";
     }
 
-    // Distribute automatic BYEs across first tier matches based on uneven counts
-    let activeSlotsNeeded = teamCount;
-    let totalSlotsAvailable = p2Size;
-    let byesToGive = totalSlotsAvailable - activeSlotsNeeded;
+    // Mathematical seed distribution maps exactly to your layout
+    const seedingSequence = getStandardSeedOrder(p2Size);
+    const totalMatchesInFirstRound = p2Size / 2;
+    const prefix = p2Size === 16 ? "r1_" : "q";
 
-    const prefix = p2Size === 16 ? "r1_" : (p2Size === 8 ? "q" : "s");
-    const loops = p2Size / 2;
+    for (let i = 0; i < totalMatchesInFirstRound; i++) {
+        const matchNum = i + 1;
+        const seed1 = seedingSequence[i * 2];
+        const seed2 = seedingSequence[i * 2 + 1];
 
-    for (let i = 1; i <= loops; i++) {
-        nodes[`${prefix}${i}_t1`] = `Team #${(i*2)-1}`;
-        nodes[`${prefix}${i}_t2`] = `Team #${i*2}`;
-
-        if (byesToGive > 0) {
-            nodes[`${prefix}${i}_t2`] = "BYE";
-            nodes[`${prefix}${i}_s1`] = "1"; // Auto score winner weight
-            byesToGive--;
-        }
+        nodes[`${prefix}${matchNum}_t1`] = seed1 <= teamCount ? `Team ${seed1}` : "BYE";
+        nodes[`${prefix}${matchNum}_t2`] = seed2 <= teamCount ? `Team ${seed2}` : "BYE";
+        
+        // Auto-advance logic for BYE slots
+        if (nodes[`${prefix}${matchNum}_t1`] === "BYE") nodes[`${prefix}${matchNum}_s2`] = "1";
+        if (nodes[`${prefix}${matchNum}_t2`] === "BYE") nodes[`${prefix}${matchNum}_s1`] = "1";
     }
+
+    // Auto populate top seeds into round 2 if they earned a bye
+    if (p2Size === 16) {
+        const round1Layout = [
+            { m: "r1_1", target: "q1", slot: "t1" }, { m: "r1_2", target: "q1", slot: "t2" },
+            { m: "r1_3", target: "q2", slot: "t1" }, { m: "r1_4", target: "q2", slot: "t2" },
+            { m: "r1_5", target: "q3", slot: "t1" }, { m: "r1_6", target: "q3", slot: "t2" },
+            { m: "r1_7", target: "q4", slot: "t1" }, { m: "r1_8", target: "q4", slot: "t2" }
+        ];
+        round1Layout.forEach(link => {
+            if (nodes[`${link.m}_t1`] === "BYE") nodes[`${link.target}_${link.slot}`] = nodes[`${link.m}_t2`];
+            if (nodes[`${link.m}_t2`] === "BYE") nodes[`${link.target}_${link.slot}`] = nodes[`${link.m}_t1`];
+        });
+    }
+
     return nodes;
 }
 
-/* ================= REALTIME ENGINE ================= */
+/* ================= SYNC CORE ENGINE ================= */
 onSnapshot(GLOBAL_DOC_REF, (snap) => {
     if (snap.exists()) {
         databaseState = snap.data();
     } else {
         saveState();
     }
-    
     populateTournamentSelectors();
     updateLeaderboards();
     renderBrackets();
@@ -569,7 +583,6 @@ async function saveState() {
     await setDoc(GLOBAL_DOC_REF, databaseState);
 }
 
-/* ================= CONFIG ENGINE CORE UTILS ================= */
 function populateTournamentSelectors() {
     const selector = document.getElementById("globalTourneySelect");
     const previousSelection = selector.value || currentTourneyId;
@@ -613,8 +626,8 @@ async function createNewTournament() {
     const name = nameInput.value.trim();
     const count = parseInt(countInput.value) || 8;
 
-    if (!name) return alert("Please type an arena blueprint name!");
-    if (count < 2) return alert("Tournaments require at least 2 teams!");
+    if (!name) return alert("Please type an arena name!");
+    if (count < 2) return alert("Requires at least 2 teams!");
 
     const newId = "arena_" + Date.now();
     databaseState.tournaments[newId] = {
@@ -647,7 +660,7 @@ async function changeActiveTeamsCount() {
     const newCount = parseInt(countInput.value) || 8;
 
     if (newCount < 2) return alert("Must have 2+ teams!");
-    if (!confirm(`Regenerating team capacity to ${newCount} will reset custom seed layout nodes. Proceed?`)) return;
+    if (!confirm(`Regenerating team capacity will reset current node assignments. Proceed?`)) return;
 
     databaseState.tournaments[currentTourneyId].teamCount = newCount;
     databaseState.tournaments[currentTourneyId].bracket = generateTreeStructure(newCount);
@@ -656,7 +669,7 @@ async function changeActiveTeamsCount() {
 
 async function deleteActiveTournament() {
     if (!databaseState.tournaments[currentTourneyId]) return;
-    if (!confirm(`Permanently wipe out this active arena ecosystem?`)) return;
+    if (!confirm(`Permanently delete this tournament arena?`)) return;
 
     delete databaseState.tournaments[currentTourneyId];
     const remainingIds = Object.keys(databaseState.tournaments);
@@ -672,7 +685,6 @@ async function deleteActiveTournament() {
     } else {
         currentTourneyId = remainingIds[0];
     }
-
     await saveState();
 }
 
@@ -680,7 +692,7 @@ function getActivePlayers() { return databaseState.tournaments[currentTourneyId]
 function getActiveBracket() { return databaseState.tournaments[currentTourneyId]?.bracket || {}; }
 function getActiveTeamCount() { return databaseState.tournaments[currentTourneyId]?.teamCount || 8; }
 
-/* ================= SORT SELECTION ENGINE ================= */
+/* ================= DATA MANIPULATION LOGIC ================= */
 function setSort(mode) { sortMode = mode; updateLeaderboards(); }
 function getSortedPlayers() {
     let copy = [...getActivePlayers()];
@@ -691,7 +703,6 @@ function getSortedPlayers() {
     return copy;
 }
 
-/* ================= INTERFACE VIEW VISIBILITIES ================= */
 function showPublic() {
     document.getElementById("publicView").style.display = "block";
     document.getElementById("adminPanel").style.display = "none";
@@ -708,16 +719,15 @@ function login() {
         document.getElementById("loginBox").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         updateLeaderboards();
-    } else alert("Denied.");
+    } else alert("Access Denied.");
 }
 
-/* ================= STATS CONTROLLERS ================= */
 function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
 function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
 function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 ? "rank-3" : "")); }
 function getKdStyle(k, d) { return (d===0?k:k/d) >= 1.0 ? "color:var(--success);font-weight:bold;" : "color:var(--danger);font-weight:bold;"; }
 
-/* ================= DYNAMIC DOM TABLES RENDERING ================= */
+/* ================= RENDERING HANDLERS ================= */
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     syncContainer("publicTable", sorted, (p, i) => `
@@ -763,7 +773,7 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     Array.from(container.children).forEach(el => { if (!activeIds.includes(el.id)) el.remove(); });
 }
 
-/* ================= POWER-OF-2 HYBRID TREE VISUALIZATION GENERATOR ================= */
+/* ================= TOURNAMENT PROGRESSION NODE INJECTOR ================= */
 function renderBrackets() {
     const b = getActiveBracket();
     const count = getActiveTeamCount();
@@ -772,27 +782,26 @@ function renderBrackets() {
     const pubBox = document.getElementById("publicBracket");
     const admBox = document.getElementById("adminBracket");
 
-    // Dynamic builders
-    const blockHtml = (id, label) => {
+    const blockHtml = (id) => {
         const isBye1 = b[`${id}_t1`] === "BYE";
         const isBye2 = b[`${id}_t2`] === "BYE";
         return {
             pub: `
                 <div class="matchup">
-                    <div class="bracket-team"><span class="public-team-name ${isBye1?'bye-slot':''}">${b[`${id}_t1`]}</span><span class="public-score">${b[`${id}_s1`]}</span></div>
-                    <div class="bracket-team"><span class="public-team-name ${isBye2?'bye-slot':''}">${b[`${id}_t2`]}</span><span class="public-score">${b[`${id}_s2`]}</span></div>
+                    <div class="bracket-team"><span class="public-team-name ${isBye1?'bye-slot':''}">${b[`${id}_t1`] || 'TBD'}</span><span class="public-score">${b[`${id}_s1`]}</span></div>
+                    <div class="bracket-team"><span class="public-team-name ${isBye2?'bye-slot':''}">${b[`${id}_t2`] || 'TBD'}</span><span class="public-score">${b[`${id}_s2`]}</span></div>
                 </div>`,
             adm: `
                 <div class="matchup">
-                    <div class="bracket-team"><input id="b_${id}_t1" class="team-name ${isBye1?'bye-slot':''}" value="${b[`${id}_t1`]}"><input id="b_${id}_s1" class="team-score" type="number" value="${b[`${id}_s1`]}"></div>
-                    <div class="bracket-team"><input id="b_${id}_t2" class="team-name ${isBye2?'bye-slot':''}" value="${b[`${id}_t2`]}"><input id="b_${id}_s2" class="team-score" type="number" value="${b[`${id}_s2`]}"></div>
+                    <div class="bracket-team"><input id="b_${id}_t1" class="team-name ${isBye1?'bye-slot':''}" value="${b[`${id}_t1`] || 'TBD'}"><input id="b_${id}_s1" class="team-score" type="number" value="${b[`${id}_s1`]}"></div>
+                    <div class="bracket-team"><input id="b_${id}_t2" class="team-name ${isBye2?'bye-slot':''}" value="${b[`${id}_t2`] || 'TBD'}"><input id="b_${id}_s2" class="team-score" type="number" value="${b[`${id}_s2`]}"></div>
                 </div>`
         };
     };
 
     let pRound1="", aRound1="", pRound2="", aRound2="", pRound3="", aRound3="", pRound4="", aRound4="";
 
-    // Round of 16 Tier (If needed)
+    // Round of 16
     if (p2Size >= 16) {
         pRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
         aRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
@@ -802,7 +811,7 @@ function renderBrackets() {
         pRound1 += `</div>`; aRound1 += `</div>`;
     }
 
-    // Quarterfinals Tier
+    // Quarterfinals
     if (p2Size >= 8) {
         pRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
         aRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
@@ -817,7 +826,7 @@ function renderBrackets() {
     pRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.pub}${s2.pub}</div>`;
     aRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.adm}${s2.adm}</div>`;
 
-    // Finals
+    // Grand Finals
     let f = blockHtml("f");
     pRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.pub}</div>`;
     aRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.adm}</div>`;
@@ -841,7 +850,7 @@ async function saveBracketEdits() {
     };
 
     syncNode("f"); syncNode("s1"); syncNode("s2");
-    if (p2Size >= 8) { for(let i=1; i<=4; i++) syncNode(`q${i}`); }
+    for(let i=1; i<=4; i++) syncNode(`q${i}`);
     if (p2Size >= 16) { for(let i=1; i<=8; i++) syncNode(`r1_${i}`); }
 
     databaseState.tournaments[currentTourneyId].bracket = target;
@@ -869,7 +878,7 @@ async function removePlayer(i) {
     if (activePlayers[i] && confirm("Delete?")) { activePlayers.splice(i, 1); await saveState(); }
 }
 
-/* ================= MATRIX BACKGROUND SIMULATOR ================= */
+/* ================= SIMULATION BG BACKGROUND ================= */
 const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth; let height = canvas.height = window.innerHeight;
 window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
@@ -889,7 +898,6 @@ function animateBackground() {
 }
 animateBackground();
 
-/* ================= CORE GLOBAL WINDOW BINDINGS ================= */
 window.showPublic = showPublic; window.openLogin = openLogin; window.login = login; window.setSort = setSort;
 window.addPlayer = addPlayer; window.updatePlayer = updatePlayer; window.removePlayer = removePlayer;
 window.switchTournament = switchTournament; window.createNewTournament = createNewTournament;
@@ -899,4 +907,4 @@ window.deleteActiveTournament = deleteActiveTournament; window.saveBracketEdits 
 showPublic();
 </script>
 </body>
-</html>  
+</html>
