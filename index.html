@@ -1137,9 +1137,18 @@ async function addPlayer() {
     await saveState();
 }
 async function updatePlayer(i, field, value) {
-    let p = getActivePlayers()[i]; if (!p) return;
-    if (field === "name" || field === "tier") p[field] = value; else p[field] = Number(value) || 0;
+    let p = getActivePlayers()[i]; 
+    if (!p) return;
+    
+    if (field === "name" || field === "tier") {
+        p[field] = value; 
+    } else {
+        p[field] = Number(value) || 0;
+    }
+    
     await saveState();
+    // ADD THIS LINE BELOW TO REFRESH THE UI
+    updateLeaderboards(); 
 }
 async function removePlayer(i) {
     let activePlayers = getActivePlayers();
