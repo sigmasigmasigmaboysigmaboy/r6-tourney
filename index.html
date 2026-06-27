@@ -180,24 +180,24 @@
         justify-content: flex-start;
     }
 
-    /* Animated Grid-Table Layout */
+    /* Column Sizing Rules */
     .grid-table {
         display: grid;
         width: 100%;
         min-width: 800px;
     }
 
-    /* Column Definitions */
-    .public-grid {
-        grid-template-columns: 0.6fr 2fr 1fr 1fr 1.2fr 1fr 1fr 1fr;
+    /* Explicitly map columns out for headers AND rows so they don't depend on un-gridded parents */
+    .public-grid .grid-header, 
+    .public-grid .grid-row {
+        display: grid;
+        grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1.2fr 1fr 1fr 1fr;
     }
 
-    .admin-grid {
-        grid-template-columns: 0.6fr 2fr 1fr 1fr 1fr 1fr 1.2fr 1fr 1.2fr;
-    }
-
-    .grid-header {
-        display: contents;
+    .admin-grid .grid-header, 
+    .admin-grid .grid-row {
+        display: grid;
+        grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr;
     }
 
     .grid-header > div {
@@ -211,17 +211,14 @@
         border-bottom: 2px solid var(--border);
     }
 
-    /* This wrapper acts as the animation container */
     .grid-body {
         display: block;
         position: relative;
         width: 100%;
     }
 
-    /* Grid Row Card with Absolute Position for Sliding Transitions */
+    /* Grid Row Formatting */
     .grid-row {
-        display: grid;
-        grid-template-columns: inherit;
         position: absolute;
         left: 0;
         width: 100%;
@@ -242,6 +239,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        text-align: left;
     }
 
     .grid-row input {
