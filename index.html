@@ -47,6 +47,7 @@ tr:hover { background: #2a2a2a; }
 
 #adminPanel { display: none; }
 #loginBox { display: none; }
+
 input[type="number"] { width: 60px; }
 </style>
 </head>
@@ -65,9 +66,9 @@ input[type="number"] { width: 60px; }
 
 <hr>
 
-<!-- PUBLIC VIEW -->
+<!-- PUBLIC -->
 <div id="publicView">
-    <h2>Leaderboard (Public View)</h2>
+    <h2>Leaderboard</h2>
     <table>
         <thead>
             <tr>
@@ -120,20 +121,19 @@ input[type="number"] { width: 60px; }
 
 <script>
 
+/* ---------------- STATE ---------------- */
 const ADMIN_PASSWORD = "admin123";
-
-let sortMode = "kd"; // default
+let sortMode = "kd";
 
 let players = load();
 
 /* ---------------- STORAGE ---------------- */
 function save() {
-    localStorage.setItem("players", btoa(JSON.stringify(players)));
+    localStorage.setItem("players", JSON.stringify(players));
 }
 
 function load() {
-    const raw = localStorage.getItem("players");
-    return raw ? JSON.parse(atob(raw)) : [];
+    return JSON.parse(localStorage.getItem("players")) || [];
 }
 
 /* ---------------- SORT ---------------- */
@@ -159,7 +159,7 @@ function getSortedPlayers() {
     return copy;
 }
 
-/* ---------------- VIEW SWITCH ---------------- */
+/* ---------------- VIEW ---------------- */
 function showPublic() {
     document.getElementById("publicView").style.display = "block";
     document.getElementById("adminPanel").style.display = "none";
@@ -227,20 +227,34 @@ function renderAdmin() {
 
     let sorted = getSortedPlayers();
 
-    sorted.forEach((p, i) => {
+    sorted.forEach((p, rank) => {
+        const realIndex = players.indexOf(p);
+
         table.innerHTML += `
         <tr>
-            <td>${i + 1}</td>
+            <td>${rank + 1}</td>
+
             <td>
-                <input value="${p.name}" onchange="p.name=this.value;save();">
+                <input value="${p.name}"
+                onchange="update(${realIndex}, 'name', this.value)">
             </td>
-            <td><input type="number" value="${p.wins}" onchange="update(${players.indexOf(p)},'wins',this.value)"></td>
-            <td><input type="number" value="${p.losses}" onchange="update(${players.indexOf(p)},'losses',this.value)"></td>
-            <td><input type="number" value="${p.kills}" onchange="update(${players.indexOf(p)},'kills',this.value)"></td>
-            <td><input type="number" value="${p.deaths}" onchange="update(${players.indexOf(p)},'deaths',this.value)"></td>
+
+            <td><input type="number" value="${p.wins}"
+                onchange="update(${realIndex}, 'wins', this.value)"></td>
+
+            <td><input type="number" value="${p.losses}"
+                onchange="update(${realIndex}, 'losses', this.value)"></td>
+
+            <td><input type="number" value="${p.kills}"
+                onchange="update(${realIndex}, 'kills', this.value)"></td>
+
+            <td><input type="number" value="${p.deaths}"
+                onchange="update(${realIndex}, 'deaths', this.value)"></td>
+
             <td>${winRate(p.wins, p.losses)}</td>
             <td>${kd(p.kills, p.deaths)}</td>
-            <td><button onclick="remove(${players.indexOf(p)})">Delete</button></td>
+
+            <td><button onclick="remove(${realIndex})">Delete</button></td>
         </tr>
         `;
     });
@@ -248,10 +262,14 @@ function renderAdmin() {
     save();
 }
 
-/* ---------------- ADD ---------------- */
+/* ---------------- ADD PLAYER ---------------- */
 function addPlayer() {
-    let name = document.getElementById("name").value;
-    if (!name) return alert("Enter name");
+    let name = document.getElementById("name").value.trim();
+
+    if (!name) {
+        alert("Enter name");
+        return;
+    }
 
     players.push({
         name,
@@ -262,13 +280,22 @@ function addPlayer() {
     });
 
     document.getElementById("name").value = "";
+
+    save();
     renderAdmin();
 }
 
 /* ---------------- UPDATE ---------------- */
 function update(i, field, value) {
-    let num = Number(value);
-    players[i][field] = Number.isFinite(num) ? num : 0;
+    if (!players[i]) return;
+
+    if (field === "name") {
+        players[i].name = value;
+    } else {
+        let num = Number(value);
+        players[i][field] = Number.isFinite(num) ? num : 0;
+    }
+
     renderAdmin();
 }
 
