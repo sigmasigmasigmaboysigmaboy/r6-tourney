@@ -514,10 +514,10 @@
         </div>
 
 <div class="nav-buttons">
-    <button id="btnNavLeaderboard" onclick="switchPanel('leaderboard')" class="active-nav">Leaderboard</button>
-    <button id="btnNavBracket" onclick="switchPanel('bracket')">Bracket</button>
-    <button id="btnNavTiers" onclick="switchPanel('tiers')">Tier List</button>
-    <button id="btnNavAdmin" onclick="switchPanel('login')">Admin Panel</button>
+    <button id="btnNavLeaderboard" class="active-nav">Leaderboard</button>
+    <button id="btnNavBracket">Bracket</button>
+    <button id="btnNavTiers">Tier List</button>
+    <button id="btnNavAdmin">Admin Panel</button>
 </div>
         
         <div id="sortContextArea" class="sort-buttons">
@@ -1277,17 +1277,32 @@ function pongLoop() {
     pongAnimationId = requestAnimationFrame(pongLoop);
 }
 
-window.switchPanel = switchPanel;
+window.updatePlayer = updatePlayer;
+window.removePlayer = removePlayer;
 window.login = login;
-window.updateLeaderboards = updateLeaderboards;
-window.renderBrackets = renderBrackets;
-window.startPongEasterEgg = startPongEasterEgg;
-window.showTiers = showTiers;
-window.addPlayer = addPlayer; window.updatePlayer = updatePlayer; window.removePlayer = removePlayer;
-window.switchTournament = switchTournament; window.createNewTournament = createNewTournament;
-window.renameActiveTournament = renameActiveTournament; window.changeActiveTeamsCount = changeActiveTeamsCount;
-window.deleteActiveTournament = deleteActiveTournament; window.saveBracketEdits = saveBracketEdits;
-window.closePongGame = closePongGame; window.updateSliderSpeed = updateSliderSpeed;
+window.createNewTournament = createNewTournament;
+window.renameActiveTournament = renameActiveTournament;
+window.changeActiveTeamsCount = changeActiveTeamsCount;
+window.deleteActiveTournament = deleteActiveTournament;
+window.saveBracketEdits = saveBracketEdits;
+window.closePongGame = closePongGame;
+window.updateSliderSpeed = updateSliderSpeed;
+window.switchTournament = switchTournament;
+window.addPlayer = addPlayer;
+
+    // Add these listeners at the bottom of your script
+document.getElementById('btnNavLeaderboard').addEventListener('click', () => switchPanel('leaderboard'));
+document.getElementById('btnNavBracket').addEventListener('click', () => switchPanel('bracket'));
+document.getElementById('btnNavTiers').addEventListener('click', () => switchPanel('tiers'));
+document.getElementById('btnNavAdmin').addEventListener('click', () => switchPanel('login'));
+
+// Sort Buttons
+document.getElementById('btnSortKd').addEventListener('click', () => setSort('kd'));
+document.getElementById('btnSortWin').addEventListener('click', () => setSort('win'));
+
+// Other interactive elements
+// Note: If you have more buttons (like inside the admin table), 
+// ensure you attach them here or use event delegation.
 
 switchPanel('leaderboard');
 </script>
