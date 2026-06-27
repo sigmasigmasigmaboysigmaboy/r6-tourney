@@ -258,7 +258,7 @@
     .rank-2 { color: var(--silver) !important; font-weight: bold; }
     .rank-3 { color: var(--bronze) !important; font-weight: bold; }
 
-    /* ================= DYNAMIC LIST-BASED MATCH CARDS ================= */
+    /* ================= MATCH CARDS ================= */
     .match-list-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -367,6 +367,7 @@
         </div>
     </header>
 
+    <!-- Public View -->
     <div id="publicView" class="view-panel">
         <h2>Leaderboard</h2>
         <div class="overflow-container">
@@ -389,12 +390,14 @@
         <div id="publicMatches" class="match-list-grid"></div>
     </div>
 
+    <!-- Login View -->
     <div id="loginBox" class="view-panel">
         <h2>Admin Login</h2>
         <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:15px; text-align:center;">
         <button onclick="login()" style="width: 100%;">Access Database</button>
     </div>
 
+    <!-- Admin View -->
     <div id="adminPanel" class="view-panel">
         <h2>Admin Tournament Management</h2>
         
@@ -402,7 +405,7 @@
             <span style="font-weight: bold; color: var(--accent); text-transform: uppercase; font-size: 0.85rem;">Create New Tournament Arena</span>
             <div class="inline-form">
                 <input id="newTourneyName" placeholder="e.g., Challenger Cup">
-                <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams (e.g. 5, 12, 16)" min="2" style="width: 240px;">
+                <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams" min="2" style="width: 200px;">
                 <button onclick="createNewTournament()">Generate Tournament</button>
             </div>
         </div>
@@ -410,10 +413,17 @@
         <div class="management-block" style="border-color: rgba(231, 76, 60, 0.4);">
             <span style="font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85rem;">Active Arena Configurations</span>
             <div class="inline-form">
-                <label style="color: var(--text-muted); font-size: 0.9rem;">Change Total Teams:</label>
-                <input id="activeTeamsCountModifier" type="number" min="1" style="width: 90px;">
+                <label style="color: var(--text-muted); font-size: 0.9rem;">Rename Arena:</label>
+                <input id="activeTourneyRenameInput" placeholder="New Arena Title" style="width: 220px;">
+                <button onclick="renameActiveTournament()">Apply New Name</button>
+                
+                <span style="color: var(--border); margin: 0 5px;">|</span>
+
+                <label style="color: var(--text-muted); font-size: 0.9rem;">Total Teams:</label>
+                <input id="activeTeamsCountModifier" type="number" min="1" style="width: 80px;">
                 <button onclick="changeActiveTeamsCount()">Resize Schedule</button>
-                <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete Entire Tournament</button>
+                
+                <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete Tournament</button>
             </div>
         </div>
 
@@ -466,7 +476,7 @@ const db = getFirestore(app);
 
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-/* ================= APP CORE SYSTEM STATE ================= */
+/* ================= SYSTEM STATE ================= */
 const ADMIN_PASSWORD = "admin123";
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
@@ -482,7 +492,6 @@ let databaseState = {
     }
 };
 
-// Calculates how many match cards are needed to single-eliminate any arbitrary size array
 function generateInitialMatches(teamCount) {
     const totalMatches = Math.max(1, teamCount - 1);
     const matchesArray = [];
@@ -498,7 +507,7 @@ function generateInitialMatches(teamCount) {
     return matchesArray;
 }
 
-/* ================= REALTIME SYNC ENGINE ================= */
+/* ================= REALTIME ENGINE ================= */
 onSnapshot(GLOBAL_DOC_REF, (snap) => {
     if (snap.exists()) {
         databaseState = snap.data();
@@ -515,7 +524,7 @@ async function saveState() {
     await setDoc(GLOBAL_DOC_REF, databaseState);
 }
 
-/* ================= MULTI-TOURNAMENT ENGINE UTILS ================= */
+/* ================= MANAGEMENT CORE FUNCTIONS ================= */
 function populateTournamentSelectors() {
     const selector = document.getElementById("globalTourneySelect");
     const previousSelection = selector.value || currentTourneyId;
@@ -537,8 +546,13 @@ function populateTournamentSelectors() {
     }
 
     const countModifier = document.getElementById("activeTeamsCountModifier");
-    if (countModifier && databaseState.tournaments[currentTourneyId]) {
-        countModifier.value = databaseState.tournaments[currentTourneyId].teamCount || 8;
+    const renameInput = document.getElementById("activeTourneyRenameInput");
+    
+    if (databaseState.tournaments[currentTourneyId]) {
+        if (countModifier) countModifier.value = databaseState.tournaments[currentTourneyId].teamCount || 8;
+        if (renameInput && document.activeElement !== renameInput) {
+            renameInput.value = databaseState.tournaments[currentTourneyId].name || "";
+        }
     }
 }
 
@@ -569,6 +583,18 @@ async function createNewTournament() {
     countInput.value = "";
     currentTourneyId = newId;
     await saveState();
+}
+
+async function renameActiveTournament() {
+    if (!databaseState.tournaments[currentTourneyId]) return;
+    const renameInput = document.getElementById("activeTourneyRenameInput");
+    const newName = renameInput.value.trim();
+
+    if (!newName) return alert("The arena title cannot be blank!");
+
+    databaseState.tournaments[currentTourneyId].name = newName;
+    await saveState();
+    alert("Tournament successfully renamed!");
 }
 
 async function changeActiveTeamsCount() {
@@ -636,7 +662,7 @@ function getSortedPlayers() {
     return copy;
 }
 
-/* ================= VIEW CONTROL INTERFACES ================= */
+/* ================= VIEW PORTALS ================= */
 function showPublic() {
     document.getElementById("publicView").style.display = "block";
     document.getElementById("adminPanel").style.display = "none";
@@ -661,7 +687,7 @@ function login() {
     }
 }
 
-/* ================= DATA RENDER FORMATTING FILTERS ================= */
+/* ================= DATA INTERPRETERS ================= */
 function winRate(w, l) {
     if (w + l === 0) return "0.0%";
     return ((w / (w + l)) * 100).toFixed(1) + "%";
@@ -684,7 +710,7 @@ function getKdStyle(k, d) {
     return rawKd >= 1.0 ? "color: var(--success); font-weight: bold;" : "color: var(--danger); font-weight: bold;";
 }
 
-/* ================= LEADERBOARD SYNC SYSTEM ================= */
+/* ================= DOM TABLES REFRESHER ================= */
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     
@@ -756,7 +782,7 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     });
 }
 
-/* ================= MATCHES DATA RENDERING ================= */
+/* ================= MATCH GENERATORS ================= */
 function renderMatches() {
     const matches = getActiveMatches();
     const publicContainer = document.getElementById("publicMatches");
@@ -818,10 +844,10 @@ async function saveMatchEdits() {
 
     databaseState.tournaments[currentTourneyId].matches = updatedMatches;
     await saveState();
-    alert("All match scores and assignments synchronized!");
+    alert("All match updates saved!");
 }
 
-/* ================= DATA HANDLERS ================= */
+/* ================= DATA WRITE OPERATORS ================= */
 async function addPlayer() {
     let name = document.getElementById("name").value.trim();
     if (!name) return alert("Enter name");
@@ -850,7 +876,7 @@ async function removePlayer(i) {
     await saveState();
 }
 
-/* ================= BACKGROUND PARTICLES ENGINE ================= */
+/* ================= BACKGROUND GRAPHICS FX ================= */
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
@@ -894,7 +920,7 @@ function animateBackground() {
 }
 animateBackground();
 
-/* ================= EXPOSE GLOBALS ================= */
+/* ================= BIND WINDOW GLOBALS ================= */
 window.showPublic = showPublic;
 window.openLogin = openLogin;
 window.login = login;
@@ -904,6 +930,7 @@ window.updatePlayer = updatePlayer;
 window.removePlayer = removePlayer;
 window.switchTournament = switchTournament;
 window.createNewTournament = createNewTournament;
+window.renameActiveTournament = renameActiveTournament;
 window.changeActiveTeamsCount = changeActiveTeamsCount;
 window.deleteActiveTournament = deleteActiveTournament;
 window.saveMatchEdits = saveMatchEdits;
