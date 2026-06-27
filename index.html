@@ -110,9 +110,9 @@
 
     button {
         padding: 10px 20px;
-        background: var(--accent);
-        color: #fff;
-        border: none;
+        background: var(--bg-input);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
         cursor: pointer;
         font-weight: bold;
         text-transform: uppercase;
@@ -124,7 +124,15 @@
 
     button:active { transform: scale(0.95); }
     button:hover {
-        background: var(--accent-hover);
+        color: #fff;
+        background: var(--border);
+    }
+
+    /* Active Highlight States for Nav Menus */
+    button.active-nav {
+        background: var(--accent) !important;
+        color: #fff !important;
+        border-color: var(--accent) !important;
         box-shadow: 0 0 12px rgba(231, 76, 60, 0.5);
     }
 
@@ -135,7 +143,7 @@
     }
     button.secondary:hover { background: var(--border); }
 
-    button.danger { background: #95a5a6; color: #fff; }
+    button.danger { background: #95a5a6; color: #fff; border: none; }
     button.danger:hover { background: var(--danger); }
 
     input {
@@ -188,7 +196,6 @@
         align-items: center;
     }
 
-    /* Fixed Layout Grids to prevent overlapping column text bugs */
     .grid-table {
         display: grid;
         width: 100%;
@@ -250,7 +257,6 @@
     .rank-2 { color: var(--silver) !important; font-weight: bold; }
     .rank-3 { color: var(--bronze) !important; font-weight: bold; }
 
-    /* ================= TOURNAMENT TREE VIEWPORT ================= */
     .bracket-container {
         display: flex;
         gap: 40px;
@@ -356,13 +362,13 @@
         </div>
 
         <div class="nav-buttons">
-            <button onclick="showPublic()">Public Dashboard</button>
-            <button onclick="openLogin()" class="secondary">Admin Panel</button>
+            <button id="btnNavPublic" onclick="showPublic()">Public Dashboard</button>
+            <button id="btnNavAdmin" onclick="openLogin()">Admin Panel</button>
         </div>
 
         <div class="sort-buttons">
-            <button onclick="setSort('kd')" class="secondary">Sort by K/D</button>
-            <button onclick="setSort('win')" class="secondary">Sort by Win %</button>
+            <button id="btnSortKd" onclick="setSort('kd')" class="active-nav">Sort by K/D</button>
+            <button id="btnSortWin" onclick="setSort('win')">Sort by Win %</button>
         </div>
     </header>
 
@@ -393,7 +399,7 @@
     <div id="loginBox" class="view-panel">
         <h2>Admin Login</h2>
         <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:15px; text-align:center;">
-        <button onclick="login()" style="width: 100%;">Access Database</button>
+        <button onclick="login()" style="width: 100%; background: var(--accent); color: white; border: none;">Access Database</button>
     </div>
 
     <div id="adminPanel" class="view-panel">
@@ -404,7 +410,7 @@
             <div class="inline-form">
                 <input id="newTourneyName" placeholder="e.g., Challenger Cup">
                 <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams (e.g. 5, 12, 16)" min="2" style="width: 250px;">
-                <button onclick="createNewTournament()">Generate Tournament</button>
+                <button onclick="createNewTournament()" style="background: var(--accent); color: white; border: none;">Generate Tournament</button>
             </div>
         </div>
 
@@ -413,22 +419,22 @@
             <div class="inline-form">
                 <label style="color: var(--text-muted); font-size: 0.9rem;">Rename Arena:</label>
                 <input id="activeTourneyRenameInput" placeholder="New Arena Title" style="width: 200px;">
-                <button onclick="renameActiveTournament()">Apply Title</button>
+                <button onclick="renameActiveTournament()" style="background: var(--accent); color: white; border: none;">Apply Title</button>
                 
                 <span style="color: var(--border); margin: 0 5px;">|</span>
 
                 <label style="color: var(--text-muted); font-size: 0.9rem;">Total Teams:</label>
                 <input id="activeTeamsCountModifier" type="number" min="2" style="width: 80px;">
-                <button onclick="changeActiveTeamsCount()">Resize Bracket</button>
+                <button onclick="changeActiveTeamsCount()" style="background: var(--accent); color: white; border: none;">Resize Bracket</button>
                 
                 <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete Tournament</button>
             </div>
         </div>
 
         <h2>Manage Players</h2>
-        <div class="add-player-form">
+        <div class="add-player-form" style="margin-bottom: 15px; display: flex; gap: 10px;">
             <input id="name" placeholder="Player Name">
-            <button onclick="addPlayer()">Add Player</button>
+            <button onclick="addPlayer()" style="background: var(--accent); color: white; border: none;">Add Player</button>
         </div>
 
         <div class="overflow-container">
@@ -453,7 +459,7 @@
             <div id="adminBracket" class="bracket-container"></div>
         </div>
         <div style="margin-top: 20px; text-align: right;">
-            <button onclick="saveBracketEdits()">Save Structural Bracket Changes</button>
+            <button onclick="saveBracketEdits()" style="background: var(--accent); color: white; border: none;">Save Structural Bracket Changes</button>
         </div>
     </div>
 </div>
@@ -499,7 +505,6 @@ function getNextPowerOfTwo(n) {
     return 32;
 }
 
-// Generates correct standard tournament pairings (e.g. 1 vs 16, 8 vs 9, etc.)
 function getStandardSeedOrder(size) {
     let order = [1, 2];
     while (order.length < size) {
@@ -518,7 +523,6 @@ function generateTreeStructure(teamCount) {
     const p2Size = getNextPowerOfTwo(teamCount);
     const nodes = {};
     
-    // Core rounds initialized
     nodes["f_t1"] = "TBD"; nodes["f_t2"] = "TBD"; nodes["f_s1"] = "0"; nodes["f_s2"] = "0";
     nodes["s1_t1"] = "TBD"; nodes["s1_t2"] = "TBD"; nodes["s1_s1"] = "0"; nodes["s1_s2"] = "0";
     nodes["s2_t1"] = "TBD"; nodes["s2_t2"] = "TBD"; nodes["s2_s1"] = "0"; nodes["s2_s2"] = "0";
@@ -532,7 +536,6 @@ function generateTreeStructure(teamCount) {
         nodes[`r1_${i}_s1`] = "0"; nodes[`r1_${i}_s2`] = "0";
     }
 
-    // Mathematical seed distribution maps exactly to your layout
     const seedingSequence = getStandardSeedOrder(p2Size);
     const totalMatchesInFirstRound = p2Size / 2;
     const prefix = p2Size === 16 ? "r1_" : "q";
@@ -545,12 +548,10 @@ function generateTreeStructure(teamCount) {
         nodes[`${prefix}${matchNum}_t1`] = seed1 <= teamCount ? `Team ${seed1}` : "BYE";
         nodes[`${prefix}${matchNum}_t2`] = seed2 <= teamCount ? `Team ${seed2}` : "BYE";
         
-        // Auto-advance logic for BYE slots
         if (nodes[`${prefix}${matchNum}_t1`] === "BYE") nodes[`${prefix}${matchNum}_s2`] = "1";
         if (nodes[`${prefix}${matchNum}_t2`] === "BYE") nodes[`${prefix}${matchNum}_s1`] = "1";
     }
 
-    // Auto populate top seeds into round 2 if they earned a bye
     if (p2Size === 16) {
         const round1Layout = [
             { m: "r1_1", target: "q1", slot: "t1" }, { m: "r1_2", target: "q1", slot: "t2" },
@@ -693,7 +694,20 @@ function getActiveBracket() { return databaseState.tournaments[currentTourneyId]
 function getActiveTeamCount() { return databaseState.tournaments[currentTourneyId]?.teamCount || 8; }
 
 /* ================= DATA MANIPULATION LOGIC ================= */
-function setSort(mode) { sortMode = mode; updateLeaderboards(); }
+function setSort(mode) { 
+    sortMode = mode; 
+    
+    // Toggle Active Class Highlights for sorting filters
+    if(mode === 'kd') {
+        document.getElementById("btnSortKd").classList.add("active-nav");
+        document.getElementById("btnSortWin").classList.remove("active-nav");
+    } else {
+        document.getElementById("btnSortWin").classList.add("active-nav");
+        document.getElementById("btnSortKd").classList.remove("active-nav");
+    }
+    updateLeaderboards(); 
+}
+
 function getSortedPlayers() {
     let copy = [...getActivePlayers()];
     copy.sort((a, b) => {
@@ -707,17 +721,31 @@ function showPublic() {
     document.getElementById("publicView").style.display = "block";
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
+    
+    // Manage highlight swap
+    document.getElementById("btnNavPublic").classList.add("active-nav");
+    document.getElementById("btnNavAdmin").classList.remove("active-nav");
+    
     updateLeaderboards();
 }
 function openLogin() {
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("publicView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
+    
+    // Manage highlight swap
+    document.getElementById("btnNavAdmin").classList.add("active-nav");
+    document.getElementById("btnNavPublic").classList.remove("active-nav");
 }
 function login() {
     if (document.getElementById("password").value === ADMIN_PASSWORD) {
         document.getElementById("loginBox").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
+        
+        // Solidify menu selection persistence state
+        document.getElementById("btnNavAdmin").classList.add("active-nav");
+        document.getElementById("btnNavPublic").classList.remove("active-nav");
+        
         updateLeaderboards();
     } else alert("Access Denied.");
 }
@@ -801,7 +829,6 @@ function renderBrackets() {
 
     let pRound1="", aRound1="", pRound2="", aRound2="", pRound3="", aRound3="", pRound4="", aRound4="";
 
-    // Round of 16
     if (p2Size >= 16) {
         pRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
         aRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
@@ -811,7 +838,6 @@ function renderBrackets() {
         pRound1 += `</div>`; aRound1 += `</div>`;
     }
 
-    // Quarterfinals
     if (p2Size >= 8) {
         pRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
         aRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
@@ -821,12 +847,10 @@ function renderBrackets() {
         pRound2 += `</div>`; aRound2 += `</div>`;
     }
 
-    // Semifinals
     let s1 = blockHtml("s1"); let s2 = blockHtml("s2");
     pRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.pub}${s2.pub}</div>`;
     aRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.adm}${s2.adm}</div>`;
 
-    // Grand Finals
     let f = blockHtml("f");
     pRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.pub}</div>`;
     aRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.adm}</div>`;
@@ -904,6 +928,7 @@ window.switchTournament = switchTournament; window.createNewTournament = createN
 window.renameActiveTournament = renameActiveTournament; window.changeActiveTeamsCount = changeActiveTeamsCount;
 window.deleteActiveTournament = deleteActiveTournament; window.saveBracketEdits = saveBracketEdits;
 
+// Initialize starting highlighted tab state on bootup
 showPublic();
 </script>
 </body>
