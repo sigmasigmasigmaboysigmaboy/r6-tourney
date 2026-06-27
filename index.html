@@ -23,7 +23,7 @@
         --silver: #bdc3c7;
         --bronze: #e67e22;
         
-        /* Row Dimensions (Altered for sliding layout calculation with spacing gaps included) */
+        /* Row Dimensions & Gaps */
         --row-height: 54px;
         --row-gap: 8px;
     }
@@ -209,7 +209,7 @@
         letter-spacing: 1px;
         font-weight: 700;
         padding: 14px 16px;
-        margin-bottom: 12px; /* Leaves clear spacing below headers */
+        margin-bottom: 12px;
     }
 
     .grid-body {
@@ -218,17 +218,14 @@
         width: 100%;
     }
 
-    /* Grid Row Formatting - Added Red Outlines and Explicit Row Separation */
+    /* Row Capsules with Red Outlines */
     .grid-row {
         position: absolute;
         left: 0;
         width: 100%;
         height: var(--row-height);
         align-items: center;
-        
-        /* Red outline border implementation */
         border: 1px solid rgba(231, 76, 60, 0.4); 
-        
         background: rgba(20, 21, 26, 0.7);
         border-radius: 8px;
         transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -236,7 +233,7 @@
 
     .grid-row:hover {
         background: rgba(231, 76, 60, 0.12);
-        border-color: var(--accent); /* Glow intensely on pointer hover */
+        border-color: var(--accent);
         box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
     }
 
@@ -283,7 +280,7 @@
         overflow-x: auto;
         width: 100%;
         border-radius: 12px;
-        padding: 4px; /* Tiny padding prevents row outlines from being clipped by scroll frame boxes */
+        padding: 4px;
     }
 
     #adminPanel { display: none; }
@@ -320,7 +317,6 @@
         </div>
     </header>
 
-    <!-- Public View -->
     <div id="publicView" class="view-panel">
         <h2>Leaderboard</h2>
         <div class="overflow-container">
@@ -340,14 +336,12 @@
         </div>
     </div>
 
-    <!-- Login View -->
     <div id="loginBox" class="view-panel">
         <h2>Admin Login</h2>
         <input type="password" id="password" placeholder="Password">
         <button onclick="login()">Access Database</button>
     </div>
 
-    <!-- Admin View -->
     <div id="adminPanel" class="view-panel">
         <h2>Admin Panel</h2>
         
@@ -485,7 +479,7 @@ function getKdStyle(k, d) {
     return rawKd >= 1.0 ? "color: var(--success); font-weight: bold;" : "color: var(--danger); font-weight: bold;";
 }
 
-/* ================= SMART DOM SYNC & ANIMATION ================= */
+/* ================= DOM SYNC & ANIMATION HANDLING ================= */
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     
@@ -520,17 +514,19 @@ function updateLeaderboards() {
     });
 }
 
-// Re-uses elements based on player identity so CSS transitions handle moving coordinates
 function syncContainer(containerId, sortedData, htmlGenerator) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    container.style.height = `${sortedData.length * 54}px`;
+    // Fixed math parameters layout calculations
+    const rowHeight = 54;
+    const rowGap = 8;
+    
+    container.style.height = `${sortedData.length * (rowHeight + rowGap)}px`;
     const existingElements = Array.from(container.children);
     const activeIds = [];
 
     sortedData.forEach((player, index) => {
-        // Safe identifier mapping base
         const cleanId = btoa(encodeURIComponent(player.name)).replace(/=/g, "");
         const elementId = `${containerId}_${cleanId}`;
         activeIds.push(elementId);
@@ -544,16 +540,14 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
             container.appendChild(rowElement);
         }
 
-        // Only redraw child inputs if they aren't active to protect cursor focus tracking state
         if (document.activeElement?.closest(`#${elementId}`) === null) {
             rowElement.innerHTML = htmlGenerator(player, index);
         }
         
-        // Translate layout coordinate points cleanly
-        rowElement.style.transform = `translateY(${index * 54}px)`;
+        // Positions row nodes accounting cleanly for layout spacing gaps
+        rowElement.style.transform = `translateY(${index * (rowHeight + rowGap)}px)`;
     });
 
-    // Cleanup abandoned profiles safely
     existingElements.forEach(el => {
         if (!activeIds.includes(el.id)) el.remove();
     });
