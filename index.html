@@ -269,7 +269,6 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        margin-top: 15px;
         background: rgba(10, 11, 13, 0.6);
         padding: 12px;
         border-radius: 12px;
@@ -301,7 +300,7 @@
     .tier-label.s { background: var(--tier-s); }
     .tier-label.a { background: var(--tier-a); }
     .tier-label.b { background: var(--tier-b); }
-    .tier-label.c { background: var(--tier-c); color: #111; } /* Darken text slightly for yellow contrast visibility */
+    .tier-label.c { background: var(--tier-c); color: #111; }
     .tier-label.d { background: var(--tier-d); color: #111; }
     .tier-label.f { background: var(--tier-f); color: #fff; }
 
@@ -326,7 +325,6 @@
         border: 1px solid rgba(255,255,255,0.08);
     }
     
-    /* Individual Badge Colors Corresponding to Row Profiles */
     .tier-badge.badge-s { border-color: var(--tier-s); box-shadow: 0 0 8px rgba(255, 77, 77, 0.2); }
     .tier-badge.badge-a { border-color: var(--tier-a); box-shadow: 0 0 8px rgba(255, 163, 67, 0.2); }
     .tier-badge.badge-b { border-color: var(--tier-b); box-shadow: 0 0 8px rgba(255, 219, 88, 0.2); }
@@ -421,7 +419,7 @@
         padding: 4px;
     }
 
-    #adminPanel, #loginBox { display: none; }
+    #tierListView, #adminPanel, #loginBox { display: none; }
 
     /* ================= EASTER EGG PONG CORE OVERLAY STYLE ================= */
     #pongWrapper {
@@ -490,6 +488,7 @@
 
 <canvas id="bg-canvas"></canvas>
 
+<!-- Secret Pong Easter Egg Area Container -->
 <div id="pongWrapper">
     <div class="pong-hud">
         <h3>SECRET PONG ARENA</h3>
@@ -515,16 +514,18 @@
         </div>
 
         <div class="nav-buttons">
-            <button id="btnNavPublic" onclick="showPublic()">Public Dashboard</button>
+            <button id="btnNavPublic" onclick="showPublic()" class="active-nav">Public Dashboard</button>
+            <button id="btnNavTiers" onclick="showTiers()">Tier List</button>
             <button id="btnNavAdmin" onclick="openLogin()">Admin Panel</button>
         </div>
 
-        <div class="sort-buttons">
+        <div id="sortContextArea" class="sort-buttons">
             <button id="btnSortKd" onclick="setSort('kd')" class="active-nav">Sort by K/D</button>
             <button id="btnSortWin" onclick="setSort('win')">Sort by Win %</button>
         </div>
     </header>
 
+    <!-- Public leaderboard and bracket View -->
     <div id="publicView" class="view-panel">
         <h2>Leaderboard</h2>
         <div class="overflow-container">
@@ -543,7 +544,15 @@
             </div>
         </div>
 
-        <h2 style="margin-top: 40px;">Community Power Tiers</h2>
+        <h2 style="margin-top: 40px;">Tournament Bracket Tree</h2>
+        <div class="overflow-container">
+            <div id="publicBracket" class="bracket-container"></div>
+        </div>
+    </div>
+
+    <!-- Separated Isolated Tier List View Panel -->
+    <div id="tierListView" class="view-panel">
+        <h2>Community Power Tiers</h2>
         <div class="tier-container">
             <div class="tier-row"><div class="tier-label s">S</div><div id="tier-S-content" class="tier-content"></div></div>
             <div class="tier-row"><div class="tier-label a">A</div><div id="tier-A-content" class="tier-content"></div></div>
@@ -552,19 +561,16 @@
             <div class="tier-row"><div class="tier-label d">D</div><div id="tier-D-content" class="tier-content"></div></div>
             <div class="tier-row"><div class="tier-label f">F</div><div id="tier-F-content" class="tier-content"></div></div>
         </div>
-
-        <h2 style="margin-top: 40px;">Tournament Bracket Tree</h2>
-        <div class="overflow-container">
-            <div id="publicBracket" class="bracket-container"></div>
-        </div>
     </div>
 
+    <!-- Login View -->
     <div id="loginBox" class="view-panel">
         <h2>Admin Login</h2>
         <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:15px; text-align:center;">
         <button onclick="login()" style="width: 100%; background: var(--accent); color: white; border: none;">Access Database</button>
     </div>
 
+    <!-- Admin View -->
     <div id="adminPanel" class="view-panel">
         <h2>Admin Tournament Management</h2>
         
@@ -881,24 +887,45 @@ function getSortedPlayers() {
 
 function showPublic() {
     document.getElementById("publicView").style.display = "block";
+    document.getElementById("tierListView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
+    document.getElementById("sortContextArea").style.display = "flex";
+    
     document.getElementById("btnNavPublic").classList.add("active-nav");
+    document.getElementById("btnNavTiers").classList.remove("active-nav");
     document.getElementById("btnNavAdmin").classList.remove("active-nav");
     updateLeaderboards();
 }
+
+function showTiers() {
+    document.getElementById("publicView").style.display = "none";
+    document.getElementById("tierListView").style.display = "block";
+    document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("sortContextArea").style.display = "none";
+    
+    document.getElementById("btnNavTiers").classList.add("active-nav");
+    document.getElementById("btnNavPublic").classList.remove("active-nav");
+    document.getElementById("btnNavAdmin").classList.remove("active-nav");
+    updateLeaderboards();
+}
+
 function openLogin() {
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("publicView").style.display = "none";
+    document.getElementById("tierListView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("sortContextArea").style.display = "none";
+    
     document.getElementById("btnNavAdmin").classList.add("active-nav");
     document.getElementById("btnNavPublic").classList.remove("active-nav");
+    document.getElementById("btnNavTiers").classList.remove("active-nav");
 }
 
 function login() {
     const inputPass = document.getElementById("password").value;
     
-    // EASTER EGG INITIATION CHECK
     if (inputPass === "pong") {
         document.getElementById("password").value = "";
         startPongEasterEgg();
@@ -910,6 +937,7 @@ function login() {
         document.getElementById("adminPanel").style.display = "block";
         document.getElementById("btnNavAdmin").classList.add("active-nav");
         document.getElementById("btnNavPublic").classList.remove("active-nav");
+        document.getElementById("btnNavTiers").classList.remove("active-nav");
         updateLeaderboards();
     } else alert("Access Denied.");
 }
@@ -931,7 +959,7 @@ function updateLeaderboards() {
         <div>${p.kills}</div><div>${p.deaths}</div><div style="${getKdStyle(p.kills, p.deaths)}">${kd(p.kills, p.deaths)}</div>
     `);
 
-    // Render Admin Control View Table with interactive Tier assignment Dropdown Selection
+    // Render Admin Control View Table
     syncContainer("adminTable", sorted, (p, rank) => {
         const realIndex = getActivePlayers().findIndex(orig => orig.name === p.name);
         const pTier = p.tier || 'Unranked';
@@ -961,7 +989,6 @@ function updateLeaderboards() {
     renderTierListLayout(sorted);
 }
 
-// Logic parsing assigned items onto the Public Shared Multi-Row Matrix UI with Colored badges
 function renderTierListLayout(sortedPlayers) {
     const tiers = { S: [], A: [], B: [], C: [], D: [], F: [] };
     
@@ -1127,12 +1154,10 @@ function animateBackground() {
 }
 animateBackground();
 
-
 /* ================= EASTER EGG: PONG GAME LOGIC ENGINE ================= */
 let pongCanvas = document.getElementById("pongCanvas");
 let pongCtx = pongCanvas.getContext("2d");
 let pongAnimationId = null;
-
 let configuredBaseSpeed = 3; 
 
 const playerPaddle = { x: 15, y: 175, w: 12, h: 90, score: 0 };
@@ -1144,7 +1169,6 @@ function startPongEasterEgg() {
     playerPaddle.score = 0;
     aiPaddle.score = 0;
     resetPongBall();
-    
     window.addEventListener("mousemove", trackMousePaddleMove);
     pongLoop();
 }
@@ -1165,7 +1189,6 @@ function trackMousePaddleMove(e) {
     let rect = pongCanvas.getBoundingClientRect();
     let relativeY = (e.clientY - rect.top) * (pongCanvas.height / rect.height);
     playerPaddle.y = relativeY - playerPaddle.h / 2;
-    
     if (playerPaddle.y < 0) playerPaddle.y = 0;
     if (playerPaddle.y + playerPaddle.h > pongCanvas.height) playerPaddle.y = pongCanvas.height - playerPaddle.h;
 }
@@ -1199,10 +1222,8 @@ function updatePongPositions() {
         let collidePoint = (pongBall.y - (currentPaddle.y + currentPaddle.h/2));
         collidePoint = collidePoint / (currentPaddle.h/2);
         let angleRad = (Math.PI/4) * collidePoint;
-        
         let direction = (pongBall.x < pongCanvas.width/2) ? 1 : -1;
         pongBall.speed = Math.min(pongBall.speed + 0.1, configuredBaseSpeed * 2.5); 
-        
         pongBall.vx = direction * pongBall.speed * Math.cos(angleRad);
         pongBall.vy = pongBall.speed * Math.sin(angleRad);
     }
@@ -1267,8 +1288,7 @@ function pongLoop() {
     pongAnimationId = requestAnimationFrame(pongLoop);
 }
 
-
-window.showPublic = showPublic; window.openLogin = openLogin; window.login = login; window.setSort = setSort;
+window.showPublic = showPublic; window.showTiers = showTiers; window.openLogin = openLogin; window.login = login; window.setSort = setSort;
 window.addPlayer = addPlayer; window.updatePlayer = updatePlayer; window.removePlayer = removePlayer;
 window.switchTournament = switchTournament; window.createNewTournament = createNewTournament;
 window.renameActiveTournament = renameActiveTournament; window.changeActiveTeamsCount = changeActiveTeamsCount;
