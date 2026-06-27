@@ -907,30 +907,23 @@ function switchPanel(panelName) {
 }
 
 function login() {
-    const inputPass = document.getElementById("password").value;
+    const passwordInput = document.getElementById("password");
+    const inputPass = passwordInput.value;
+    
     if (inputPass === "pong") {
-        document.getElementById("password").value = "";
+        passwordInput.value = "";
         startPongEasterEgg();
         return;
     }
+    
     if (inputPass === ADMIN_PASSWORD) {
-        document.getElementById("password").value = "";
-        switchPanel('admin'); // Directly switch to the Admin Panel
+        passwordInput.value = "";
+        switchPanel('admin');
         updateLeaderboards();
     } else {
         alert("Access Denied.");
     }
 }
-    if (inputPass === ADMIN_PASSWORD) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
-        document.getElementById("btnNavAdmin").classList.add("active-nav");
-        document.getElementById("btnNavPublic").classList.remove("active-nav");
-        document.getElementById("btnNavTiers").classList.remove("active-nav");
-        updateLeaderboards();
-    } else alert("Access Denied.");
-
-
 function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
 function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
 function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 ? "rank-3" : "")); }
