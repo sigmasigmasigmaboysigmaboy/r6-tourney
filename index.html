@@ -514,10 +514,10 @@
         </div>
 
 <div class="nav-buttons">
-    <button id="btnNavLeaderboard" onclick="showLeaderboard()" class="active-nav">Leaderboard</button>
-    <button id="btnNavBracket" onclick="showBracket()">Bracket</button> <!-- New Button -->
-    <button id="btnNavTiers" onclick="showTiers()">Tier List</button>
-    <button id="btnNavAdmin" onclick="openLogin()">Admin Panel</button>
+    <button id="btnNavLeaderboard" onclick="switchPanel('leaderboard')" class="active-nav">Leaderboard</button>
+    <button id="btnNavBracket" onclick="switchPanel('bracket')">Bracket</button>
+    <button id="btnNavTiers" onclick="switchPanel('tiers')">Tier List</button>
+    <button id="btnNavAdmin" onclick="switchPanel('login')">Admin Panel</button>
 </div>
         
         <div id="sortContextArea" class="sort-buttons">
@@ -882,72 +882,45 @@ function getSortedPlayers() {
     return copy;
 }
 
-function showLeaderboard() {
-    document.getElementById("leaderboardView").style.display = "block";
+function switchPanel(panelName) {
+    // 1. Hide all panels
+    document.getElementById("leaderboardView").style.display = "none";
     document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
-    document.getElementById("sortContextArea").style.display = "flex";
     
-    document.getElementById("btnNavLeaderboard").classList.add("active-nav");
-    document.getElementById("btnNavBracket").classList.remove("active-nav");
-    document.getElementById("btnNavTiers").classList.remove("active-nav");
-    document.getElementById("btnNavAdmin").classList.remove("active-nav");
-    updateLeaderboards();
-}
+    // 2. Manage Sort Button Visibility
+    document.getElementById("sortContextArea").style.display = (panelName === 'leaderboard') ? "flex" : "none";
 
-function showBracket() {
-    document.getElementById("leaderboardView").style.display = "none";
-    document.getElementById("bracketView").style.display = "block";
-    document.getElementById("tierListView").style.display = "none";
-    document.getElementById("adminPanel").style.display = "none";
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("sortContextArea").style.display = "none";
-    
-    document.getElementById("btnNavBracket").classList.add("active-nav");
-    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
-    document.getElementById("btnNavTiers").classList.remove("active-nav");
-    document.getElementById("btnNavAdmin").classList.remove("active-nav");
-    renderBrackets();
-}
+    // 3. Show requested panel
+    if(panelName === 'leaderboard') document.getElementById("leaderboardView").style.display = "block";
+    if(panelName === 'bracket') document.getElementById("bracketView").style.display = "block";
+    if(panelName === 'tiers') document.getElementById("tierListView").style.display = "block";
+    if(panelName === 'admin') document.getElementById("adminPanel").style.display = "block";
+    if(panelName === 'login') document.getElementById("loginBox").style.display = "block";
 
-function showTiers() {
-    document.getElementById("publicView").style.display = "none";
-    document.getElementById("tierListView").style.display = "block";
-    document.getElementById("adminPanel").style.display = "none";
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("sortContextArea").style.display = "none";
-
-    document.getElementById("btnNavTiers").classList.add("active-nav");
-    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
-    document.getElementById("btnNavBracket").classList.remove("active-nav");
-    document.getElementById("btnNavAdmin").classList.remove("active-nav");
-    updateLeaderboards();
-}
-
-function openLogin() {
-    document.getElementById("loginBox").style.display = "block";
-    document.getElementById("publicView").style.display = "none";
-    document.getElementById("tierListView").style.display = "none";
-    document.getElementById("adminPanel").style.display = "none";
-    document.getElementById("sortContextArea").style.display = "none";
-    
-    document.getElementById("btnNavAdmin").classList.add("active-nav");
-    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
-    document.getElementById("btnNavBracket").classList.remove("active-nav");
-    document.getElementById("btnNavTiers").classList.remove("active-nav");
+    // 4. Update Button Classes
+    document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('active-nav'));
+    const btnMap = { 'leaderboard': 'btnNavLeaderboard', 'bracket': 'btnNavBracket', 'tiers': 'btnNavTiers', 'admin': 'btnNavAdmin' };
+    if(btnMap[panelName]) document.getElementById(btnMap[panelName]).classList.add('active-nav');
 }
 
 function login() {
     const inputPass = document.getElementById("password").value;
-    
     if (inputPass === "pong") {
         document.getElementById("password").value = "";
         startPongEasterEgg();
         return;
     }
-
+    if (inputPass === ADMIN_PASSWORD) {
+        document.getElementById("password").value = "";
+        switchPanel('admin'); // Directly switch to the Admin Panel
+        updateLeaderboards();
+    } else {
+        alert("Access Denied.");
+    }
+}
     if (inputPass === ADMIN_PASSWORD) {
         document.getElementById("loginBox").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
