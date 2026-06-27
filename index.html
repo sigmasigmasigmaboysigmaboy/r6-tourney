@@ -2,118 +2,283 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R6 Tournament Hub</title>
 
 <style>
-body {
-    font-family: Arial;
-    background: #0f0f0f;
-    color: white;
-    text-align: center;
-}
+    :root {
+        --bg-main: #0d0e11;
+        --bg-card: #16171c;
+        --bg-input: #1f2128;
+        --accent: #f1c40f;
+        --accent-hover: #f39c12;
+        --text-main: #f5f6fa;
+        --text-muted: #7f8c8d;
+        --border: #2c2e38;
+        --danger: #e74c3c;
+    }
 
-h1 { color: #ffcc00; }
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-button {
-    padding: 8px 12px;
-    margin: 5px;
-    background: #ffcc00;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg-main);
+        color: var(--text-main);
+        line-height: 1.6;
+        padding: 20px;
+    }
 
-input {
-    padding: 6px;
-    margin: 3px;
-}
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
 
-table {
-    width: 90%;
-    margin: auto;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
+    header {
+        margin-bottom: 30px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 20px;
+    }
 
-th, td {
-    border: 1px solid #333;
-    padding: 10px;
-}
+    h1 {
+        color: var(--accent);
+        font-size: 2.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 15px;
+        font-weight: 800;
+    }
 
-th { background: #222; }
+    /* Controls & Buttons */
+    .nav-buttons, .sort-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
 
-tr:nth-child(even) { background: #1a1a1a; }
-tr:hover { background: #2a2a2a; }
+    button {
+        padding: 10px 20px;
+        background: var(--accent);
+        color: #000;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        transition: all 0.2s ease;
+        border-radius: 4px;
+    }
 
-#adminPanel { display: none; }
-#loginBox { display: none; }
+    button:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
 
-input[type="number"] { width: 60px; }
+    button.secondary {
+        background: var(--bg-input);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+    }
+
+    button.secondary:hover {
+        background: var(--border);
+    }
+
+    button.danger {
+        background: var(--danger);
+        color: white;
+    }
+    
+    button.danger:hover {
+        background: #c0392b;
+    }
+
+    input {
+        padding: 10px 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    /* Panel Content Containers */
+    .view-panel {
+        background: var(--bg-card);
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        border: 1px solid var(--border);
+        margin-top: 20px;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #fff;
+        border-left: 4px solid var(--accent);
+        padding-left: 10px;
+        text-align: left;
+    }
+
+    /* Admin Add Player Area */
+    .add-player-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        justify-content: flex-start;
+    }
+
+    /* Table Styling */
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        text-align: left;
+    }
+
+    th, td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.95rem;
+    }
+
+    th {
+        background: #111217;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+        font-weight: 700;
+    }
+
+    tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    td input {
+        width: 100%;
+        padding: 6px 10px;
+    }
+
+    td input[type="number"] {
+        width: 70px;
+        text-align: center;
+    }
+
+    /* Auth Box */
+    #loginBox {
+        max-width: 350px;
+        margin: 40px auto;
+    }
+
+    #loginBox input {
+        width: 100%;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    #loginBox button {
+        width: 100%;
+    }
+
+    #adminPanel { display: none; }
+    #loginBox { display: none; }
 </style>
 </head>
 
 <body>
 
-<h1>R6 Tournament Hub</h1>
+<div class="container">
+    <header>
+        <h1>R6 Tournament Hub</h1>
+        
+        <div class="nav-buttons">
+            <button onclick="showPublic()">Public Leaderboard</button>
+            <button onclick="openLogin()" class="secondary">Admin Panel</button>
+        </div>
 
-<button onclick="showPublic()">Public Leaderboard</button>
-<button onclick="openLogin()">Admin Panel</button>
+        <div class="sort-buttons">
+            <button onclick="setSort('kd')" class="secondary">Sort by K/D</button>
+            <button onclick="setSort('win')" class="secondary">Sort by Win %</button>
+        </div>
+    </header>
 
-<br>
+    <!-- Public View -->
+    <div id="publicView" class="view-panel">
+        <h2>Leaderboard</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Win %</th>
+                    <th>Kills</th>
+                    <th>Deaths</th>
+                    <th>K/D</th>
+                </tr>
+                </thead>
+                <tbody id="publicTable"></tbody>
+            </table>
+        </div>
+    </div>
 
-<button onclick="setSort('kd')">Sort by K/D</button>
-<button onclick="setSort('win')">Sort by Win %</button>
+    <!-- Login View -->
+    <div id="loginBox" class="view-panel">
+        <h2>Admin Login</h2>
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Access Database</button>
+    </div>
 
-<hr>
+    <!-- Admin View -->
+    <div id="adminPanel" class="view-panel">
+        <h2>Admin Panel</h2>
+        
+        <div class="add-player-form">
+            <input id="name" placeholder="Player Name">
+            <button onclick="addPlayer()">Add Player</button>
+        </div>
 
-<div id="publicView">
-    <h2>Leaderboard</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>Wins</th>
-            <th>Losses</th>
-            <th>Win %</th>
-            <th>Kills</th>
-            <th>Deaths</th>
-            <th>K/D</th>
-        </tr>
-        </thead>
-        <tbody id="publicTable"></tbody>
-    </table>
-</div>
-
-<div id="loginBox">
-    <h2>Admin Login</h2>
-    <input type="password" id="password" placeholder="Password">
-    <br>
-    <button onclick="login()">Login</button>
-</div>
-
-<div id="adminPanel">
-    <h2>Admin Panel</h2>
-
-    <input id="name" placeholder="Player Name">
-    <button onclick="addPlayer()">Add Player</button>
-
-    <table>
-        <thead>
-        <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>Wins</th>
-            <th>Losses</th>
-            <th>Kills</th>
-            <th>Deaths</th>
-            <th>Win %</th>
-            <th>K/D</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody id="adminTable"></tbody>
-    </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Kills</th>
+                    <th>Deaths</th>
+                    <th>Win %</th>
+                    <th>K/D</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="adminTable"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script type="module">
@@ -123,11 +288,9 @@ import {
     getFirestore,
     doc,
     setDoc,
-    getDoc,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-/* 🔴 PUT YOUR FIREBASE CONFIG HERE */
 const firebaseConfig = {
     apiKey: "AIzaSyCB88kRN8uPwJc8q_KcGqlmPA9rBCF58ro",
     authDomain: "r6-tourney.firebaseapp.com",
@@ -218,7 +381,7 @@ function login() {
 
 /* ================= CALC ================= */
 function winRate(w, l) {
-    if (w + l === 0) return "0%";
+    if (w + l === 0) return "0.0%";
     return ((w / (w + l)) * 100).toFixed(1) + "%";
 }
 
@@ -237,14 +400,14 @@ function renderPublic() {
     sorted.forEach((p, i) => {
         table.innerHTML += `
         <tr>
-            <td>${i + 1}</td>
-            <td>${p.name}</td>
+            <td><strong>#${i + 1}</strong></td>
+            <td><strong>${p.name}</strong></td>
             <td>${p.wins}</td>
             <td>${p.losses}</td>
             <td>${winRate(p.wins, p.losses)}</td>
             <td>${p.kills}</td>
             <td>${p.deaths}</td>
-            <td>${kd(p.kills, p.deaths)}</td>
+            <td style="color: var(--accent); font-weight: bold;">${kd(p.kills, p.deaths)}</td>
         </tr>`;
     });
 }
@@ -261,7 +424,7 @@ function renderAdmin() {
 
         table.innerHTML += `
         <tr>
-            <td>${rank + 1}</td>
+            <td>#${rank + 1}</td>
 
             <td>
                 <input value="${p.name}"
@@ -283,7 +446,7 @@ function renderAdmin() {
             <td>${winRate(p.wins, p.losses)}</td>
             <td>${kd(p.kills, p.deaths)}</td>
 
-            <td><button onclick="remove(${realIndex})">Delete</button></td>
+            <td><button class="danger" onclick="remove(${realIndex})">Delete</button></td>
         </tr>`;
     });
 }
@@ -315,6 +478,7 @@ async function update(i, field, value) {
 }
 
 async function remove(i) {
+    if (!confirm("Are you sure you want to delete this player?")) return;
     players.splice(i, 1);
     await save();
 }
