@@ -355,7 +355,6 @@
         height: 100vh;
         background: rgba(5, 5, 7, 0.96);
         z-index: 9999;
-        display: none;
         flex-direction: column;
         justify-content: center;
         align-items: center;
@@ -384,6 +383,28 @@
         color: var(--text-muted);
         font-size: 0.9rem;
     }
+    .pong-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+        background: rgba(25, 26, 32, 0.8);
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+    .pong-controls label {
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+        color: var(--text-main);
+    }
+    .pong-controls input[type="range"] {
+        cursor: pointer;
+        accent-color: var(--accent);
+        width: 150px;
+    }
 </style>
 </head>
 
@@ -396,6 +417,12 @@
         <h3>SECRET PONG ARENA</h3>
         <p>Move mouse up / down to guide your paddle. First to 10 wins!</p>
     </div>
+    
+    <div class="pong-controls">
+        <label for="pongSpeedSlider">Ball Speed: <span id="speedVal" style="color:var(--accent);">3</span></label>
+        <input type="range" id="pongSpeedSlider" min="1" max="15" value="3" oninput="updateSliderSpeed(this.value)">
+    </div>
+
     <canvas id="pongCanvas" width="800" height="450"></canvas>
     <button onclick="closePongGame()" class="danger" style="margin-top:20px; padding: 12px 30px;">Close Easter Egg</button>
 </div>
@@ -976,9 +1003,12 @@ let pongCanvas = document.getElementById("pongCanvas");
 let pongCtx = pongCanvas.getContext("2d");
 let pongAnimationId = null;
 
+// Track general configuration slider velocity global states
+let configuredBaseSpeed = 3; 
+
 const playerPaddle = { x: 15, y: 175, w: 12, h: 90, score: 0 };
 const aiPaddle = { x: 773, y: 175, w: 12, h: 90, score: 0 };
-const pongBall = { x: 400, y: 225, radius: 8, speed: 2, vx: 5, vy: 3 };
+const pongBall = { x: 400, y: 225, radius: 8, speed: 3, vx: 3, vy: 1.5 };
 
 function startPongEasterEgg() {
     document.getElementById("pongWrapper").style.display = "flex";
@@ -997,13 +1027,17 @@ function closePongGame() {
     showPublic();
 }
 
+// Live Update handler hooked up directly to slider element interaction
+function updateSliderSpeed(val) {
+    configuredBaseSpeed = parseFloat(val);
+    document.getElementById("speedVal").innerText = val;
+}
+
 function trackMousePaddleMove(e) {
     let rect = pongCanvas.getBoundingClientRect();
-    // Scale tracking position depending on viewport scaling
     let relativeY = (e.clientY - rect.top) * (pongCanvas.height / rect.height);
     playerPaddle.y = relativeY - playerPaddle.h / 2;
     
-    // Bounds check player paddle
     if (playerPaddle.y < 0) playerPaddle.y = 0;
     if (playerPaddle.y + playerPaddle.h > pongCanvas.height) playerPaddle.y = pongCanvas.height - playerPaddle.h;
 }
@@ -1011,44 +1045,46 @@ function trackMousePaddleMove(e) {
 function resetPongBall() {
     pongBall.x = pongCanvas.width / 2;
     pongBall.y = pongCanvas.height / 2;
-    pongBall.speed = 2;
-    // Alternate direction serve logic
+    
+    // Assign slider value to current engine velocity configuration profile
+    pongBall.speed = configuredBaseSpeed; 
+    
     pongBall.vx = (Math.random() > 0.5 ? 1 : -1) * pongBall.speed;
-    pongBall.vy = (Math.random() * 2 - 1) * 4;
+    pongBall.vy = (Math.random() * 2 - 1) * (pongBall.speed * 0.6);
 }
 
 function updatePongPositions() {
     pongBall.x += pongBall.vx;
     pongBall.y += pongBall.vy;
 
-    // AI Follow Track Logic (Smooth tracking delay interpolation)
+    // AI Follow Track Logic (Scales smoothly to prevent artificial locks)
     let aiTargetY = pongBall.y - (aiPaddle.h / 2);
-    aiPaddle.y += (aiTargetY - aiPaddle.y) * 0.11;
+    let aiTrackSpeed = 0.05 + (configuredBaseSpeed * 0.008); 
+    aiPaddle.y += (aiTargetY - aiPaddle.y) * Math.min(aiTrackSpeed, 0.15);
     
     if (aiPaddle.y < 0) aiPaddle.y = 0;
     if (aiPaddle.y + aiPaddle.h > pongCanvas.height) aiPaddle.y = pongCanvas.height - aiPaddle.h;
 
-    // Top and Bottom ceiling ceiling bounces
     if (pongBall.y - pongBall.radius < 0 || pongBall.y + pongBall.radius > pongCanvas.height) {
         pongBall.vy = -pongBall.vy;
     }
 
-    // Dynamic collision evaluation
     let currentPaddle = (pongBall.x < pongCanvas.width / 2) ? playerPaddle : aiPaddle;
 
     if (detectPaddleCollision(pongBall, currentPaddle)) {
-        // Calculate bounce dynamic return angles based on intersection offset points
         let collidePoint = (pongBall.y - (currentPaddle.y + currentPaddle.h/2));
         collidePoint = collidePoint / (currentPaddle.h/2);
         let angleRad = (Math.PI/4) * collidePoint;
         
         let direction = (pongBall.x < pongCanvas.width/2) ? 1 : -1;
-        pongBall.speed += 0.4; // Gradually increase difficulty speed
+        
+        // Minor incremental multiplier step, capped systematically 
+        pongBall.speed = Math.min(pongBall.speed + 0.1, configuredBaseSpeed * 2.5); 
+        
         pongBall.vx = direction * pongBall.speed * Math.cos(angleRad);
         pongBall.vy = pongBall.speed * Math.sin(angleRad);
     }
 
-    // Score evaluation triggers
     if (pongBall.x - pongBall.radius < 0) {
         aiPaddle.score++;
         checkWinCondition();
@@ -1075,11 +1111,9 @@ function checkWinCondition() {
 }
 
 function drawPongObjects() {
-    // Clear viewport frame
     pongCtx.fillStyle = "#111216";
     pongCtx.fillRect(0, 0, pongCanvas.width, pongCanvas.height);
 
-    // Draw central net guide split line
     pongCtx.strokeStyle = "rgba(231, 76, 60, 0.15)";
     pongCtx.setLineDash([10, 10]);
     pongCtx.lineWidth = 4;
@@ -1087,22 +1121,19 @@ function drawPongObjects() {
     pongCtx.moveTo(pongCanvas.width/2, 0);
     pongCtx.lineTo(pongCanvas.width/2, pongCanvas.height);
     pongCtx.stroke();
-    pongCtx.setLineDash([]); // Reset line dash style
+    pongCtx.setLineDash([]); 
 
-    // Render text scoreboard HUD
     pongCtx.fillStyle = "#f5f6fa";
     pongCtx.font = "bold 32px 'Segoe UI'";
     pongCtx.fillText(playerPaddle.score, pongCanvas.width/4, 50);
     pongCtx.fillText(aiPaddle.score, (pongCanvas.width/4) * 3, 50);
 
-    // Render paddles
-    pongCtx.fillStyle = "#e74c3c"; // Crimson player accent
+    pongCtx.fillStyle = "#e74c3c"; 
     pongCtx.fillRect(playerPaddle.x, playerPaddle.y, playerPaddle.w, playerPaddle.h);
-    pongCtx.fillStyle = "#718093"; // Muted enemy variant
+    pongCtx.fillStyle = "#718093"; 
     pongCtx.fillRect(aiPaddle.x, aiPaddle.y, aiPaddle.w, aiPaddle.h);
 
-    // Render active ball matrix
-    pongCtx.fillStyle = "#2ecc71"; // Success vector green for tracking visibility
+    pongCtx.fillStyle = "#2ecc71"; 
     pongCtx.beginPath();
     pongCtx.arc(pongBall.x, pongBall.y, pongBall.radius, 0, Math.PI*2);
     pongCtx.fill();
@@ -1120,7 +1151,7 @@ window.addPlayer = addPlayer; window.updatePlayer = updatePlayer; window.removeP
 window.switchTournament = switchTournament; window.createNewTournament = createNewTournament;
 window.renameActiveTournament = renameActiveTournament; window.changeActiveTeamsCount = changeActiveTeamsCount;
 window.deleteActiveTournament = deleteActiveTournament; window.saveBracketEdits = saveBracketEdits;
-window.closePongGame = closePongGame;
+window.closePongGame = closePongGame; window.updateSliderSpeed = updateSliderSpeed;
 
 showPublic();
 </script>
