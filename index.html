@@ -1276,20 +1276,7 @@ function pongLoop() {
     drawPongObjects();
     pongAnimationId = requestAnimationFrame(pongLoop);
 }
-
-window.updatePlayer = updatePlayer;
-window.removePlayer = removePlayer;
-window.login = login;
-window.createNewTournament = createNewTournament;
-window.renameActiveTournament = renameActiveTournament;
-window.changeActiveTeamsCount = changeActiveTeamsCount;
-window.deleteActiveTournament = deleteActiveTournament;
-window.saveBracketEdits = saveBracketEdits;
-window.closePongGame = closePongGame;
-window.updateSliderSpeed = updateSliderSpeed;
-window.switchTournament = switchTournament;
-window.addPlayer = addPlayer;
-
+    
     // Add these listeners at the bottom of your script
 document.getElementById('btnNavLeaderboard').addEventListener('click', () => switchPanel('leaderboard'));
 document.getElementById('btnNavBracket').addEventListener('click', () => switchPanel('bracket'));
@@ -1303,6 +1290,25 @@ document.getElementById('btnSortWin').addEventListener('click', () => setSort('w
 // Other interactive elements
 // Note: If you have more buttons (like inside the admin table), 
 // ensure you attach them here or use event delegation.
+    
+// --- EXPOSE FUNCTIONS TO WINDOW FOR HTML ONCLICK ---
+window.switchPanel = switchPanel;
+window.login = login;
+window.setSort = setSort;
+window.addPlayer = addPlayer;
+window.updatePlayer = updatePlayer;
+window.removePlayer = removePlayer;
+window.switchTournament = switchTournament;
+window.createNewTournament = createNewTournament;
+window.renameActiveTournament = renameActiveTournament;
+window.changeActiveTeamsCount = changeActiveTeamsCount;
+window.deleteActiveTournament = deleteActiveTournament;
+window.saveBracketEdits = saveBracketEdits;
+window.closePongGame = closePongGame;
+window.updateSliderSpeed = updateSliderSpeed;
+window.startPongEasterEgg = startPongEasterEgg;
+
+
 
 switchPanel('leaderboard');
 </script>
