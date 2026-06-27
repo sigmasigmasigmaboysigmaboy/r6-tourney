@@ -99,7 +99,7 @@
         font-size: 0.85rem;
         letter-spacing: 1px;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 4px;
+        border-radius: 6px; /* Slightly more rounded buttons */
     }
 
     button:active {
@@ -138,7 +138,7 @@
         background: var(--bg-input);
         border: 1px solid var(--border);
         color: white;
-        border-radius: 4px;
+        border-radius: 6px; /* Rounded inputs */
         font-size: 0.9rem;
         transition: all 0.2s ease;
     }
@@ -150,11 +150,11 @@
         background: #20222a;
     }
 
-    /* Panel Content Containers */
+    /* Panel Content Containers - Fully Rounded Panels */
     .view-panel {
         background: var(--bg-card);
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 16px; /* Deep rounded card corners */
         box-shadow: 0 10px 35px rgba(0,0,0,0.8);
         border: 1px solid var(--border);
         margin-top: 20px;
@@ -185,9 +185,10 @@
         display: grid;
         width: 100%;
         min-width: 800px;
+        border-radius: 12px; /* Smooth container edges */
+        overflow: hidden;
     }
 
-    /* Explicitly map columns out for headers AND rows so they don't depend on un-gridded parents */
     .public-grid .grid-header, 
     .public-grid .grid-row {
         display: grid;
@@ -215,22 +216,26 @@
         display: block;
         position: relative;
         width: 100%;
+        margin-top: 5px; /* Tiny gap under header for card style look */
     }
 
-    /* Grid Row Formatting */
+    /* Grid Row Formatting - Smooth capsules */
     .grid-row {
         position: absolute;
         left: 0;
         width: 100%;
         height: var(--row-height);
         align-items: center;
-        border-bottom: 1px solid var(--border);
-        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease;
-        background: rgba(20, 21, 26, 0.4);
+        border-bottom: 1px solid transparent; /* Replaced default divider border */
+        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        background: rgba(25, 27, 34, 0.4);
+        border-radius: 8px; /* Rounded pill rows */
+        margin-bottom: 4px;
     }
 
     .grid-row:hover {
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(231, 76, 60, 0.08); /* Faint red glow highlight */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .grid-row > div {
@@ -245,6 +250,7 @@
     .grid-row input {
         width: 100%;
         padding: 6px 10px;
+        border-radius: 4px; /* Slightly rounded inputs inside row edit */
     }
 
     .grid-row input[type="number"] {
@@ -274,6 +280,7 @@
     .overflow-container {
         overflow-x: auto;
         width: 100%;
+        border-radius: 12px; /* Ensures scroll area keeps corners tidy */
     }
 
     #adminPanel { display: none; }
