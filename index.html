@@ -918,9 +918,10 @@ function showTiers() {
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("sortContextArea").style.display = "none";
-    
+
     document.getElementById("btnNavTiers").classList.add("active-nav");
-    document.getElementById("btnNavPublic").classList.remove("active-nav");
+    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
+    document.getElementById("btnNavBracket").classList.remove("active-nav");
     document.getElementById("btnNavAdmin").classList.remove("active-nav");
     updateLeaderboards();
 }
@@ -933,7 +934,8 @@ function openLogin() {
     document.getElementById("sortContextArea").style.display = "none";
     
     document.getElementById("btnNavAdmin").classList.add("active-nav");
-    document.getElementById("btnNavPublic").classList.remove("active-nav");
+    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
+    document.getElementById("btnNavBracket").classList.remove("active-nav");
     document.getElementById("btnNavTiers").classList.remove("active-nav");
 }
 
