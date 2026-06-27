@@ -80,7 +80,6 @@
         text-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
     }
 
-    /* Global Tournament Selector Controls */
     .tourney-selector-zone {
         margin: 15px 0;
         display: flex;
@@ -137,9 +136,7 @@
         color: var(--text-main);
         border: 1px solid var(--border);
     }
-    button.secondary:hover {
-        background: var(--border);
-    }
+    button.secondary:hover { background: var(--border); }
 
     button.danger { background: #95a5a6; color: #fff; }
     button.danger:hover { background: var(--danger); }
@@ -261,67 +258,56 @@
     .rank-2 { color: var(--silver) !important; font-weight: bold; }
     .rank-3 { color: var(--bronze) !important; font-weight: bold; }
 
-    /* ================= BRACKET SYSTEM UI ================= */
-    .bracket-container {
-        display: flex;
-        gap: 40px;
-        margin-top: 30px;
-        padding: 10px;
-        min-width: 600px;
-        justify-content: flex-start;
+    /* ================= DYNAMIC LIST-BASED MATCH CARDS ================= */
+    .match-list-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
     }
 
-    .bracket-round {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        flex: 1;
-        min-width: 220px;
-    }
-
-    .bracket-round-title {
-        text-align: center;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
-        font-weight: bold;
-    }
-
-    .matchup {
+    .match-card {
         background: rgba(20, 21, 26, 0.8);
         border: 1px solid rgba(231, 76, 60, 0.3);
         border-radius: 8px;
-        margin: 15px 0;
-        padding: 5px;
+        padding: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
 
-    .bracket-team {
+    .match-title {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.5px;
+        margin-bottom: 10px;
+        font-weight: bold;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 4px;
+    }
+
+    .match-team-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 12px;
-        border-radius: 4px;
+        padding: 6px 0;
     }
 
-    .bracket-team:first-child {
-        border-bottom: 1px solid var(--border);
+    .match-team-row:not(:last-child) {
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
     }
 
-    .bracket-team input.team-name {
+    .match-team-row input.edit-name {
         background: transparent;
         border: none;
         color: white;
         font-weight: 600;
-        width: 75%;
-        padding: 2px;
+        width: 70%;
+        padding: 2px 4px;
     }
-    .bracket-team input.team-name:focus { background: var(--bg-input); }
+    .match-team-row input.edit-name:focus { background: var(--bg-input); }
 
-    .bracket-team input.team-score {
-        width: 40px;
+    .match-team-row input.edit-score {
+        width: 45px;
         text-align: center;
         background: var(--bg-input);
         border: 1px solid var(--border);
@@ -331,18 +317,19 @@
         padding: 4px;
     }
 
-    .public-score {
+    .view-team-name {
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .view-score {
         font-weight: bold;
         color: var(--accent);
         background: rgba(231, 76, 60, 0.1);
         padding: 2px 8px;
         border-radius: 4px;
-        min-width: 30px;
+        min-width: 32px;
         text-align: center;
-    }
-
-    .public-team-name {
-        font-weight: 600;
     }
 
     .overflow-container {
@@ -398,10 +385,8 @@
             </div>
         </div>
 
-        <h2 style="margin-top: 40px;">Tournament Bracket</h2>
-        <div class="overflow-container">
-            <div id="publicBracket" class="bracket-container"></div>
-        </div>
+        <h2 style="margin-top: 40px;">Tournament Matchups</h2>
+        <div id="publicMatches" class="match-list-grid"></div>
     </div>
 
     <div id="loginBox" class="view-panel">
@@ -416,11 +401,8 @@
         <div class="management-block">
             <span style="font-weight: bold; color: var(--accent); text-transform: uppercase; font-size: 0.85rem;">Create New Tournament Arena</span>
             <div class="inline-form">
-                <input id="newTourneyName" placeholder="e.g., Summer Cup 2026">
-                <select id="newTourneySize">
-                    <option value="8">8 Teams (Quarterfinals)</option>
-                    <option value="4">4 Teams (Semifinals)</option>
-                </select>
+                <input id="newTourneyName" placeholder="e.g., Challenger Cup">
+                <input id="newTourneyTeamsCount" type="number" placeholder="Number of Teams (e.g. 5, 12, 16)" min="2" style="width: 240px;">
                 <button onclick="createNewTournament()">Generate Tournament</button>
             </div>
         </div>
@@ -428,12 +410,10 @@
         <div class="management-block" style="border-color: rgba(231, 76, 60, 0.4);">
             <span style="font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85rem;">Active Arena Configurations</span>
             <div class="inline-form">
-                <label style="color: var(--text-muted); font-size: 0.9rem;">Adjust Bracket Size:</label>
-                <select id="activeBracketSizeSelector" onchange="changeActiveBracketSize(this.value)">
-                    <option value="8">8 Teams</option>
-                    <option value="4">4 Teams</option>
-                </select>
-                <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete This Entire Tournament</button>
+                <label style="color: var(--text-muted); font-size: 0.9rem;">Change Total Teams:</label>
+                <input id="activeTeamsCountModifier" type="number" min="1" style="width: 90px;">
+                <button onclick="changeActiveTeamsCount()">Resize Schedule</button>
+                <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete Entire Tournament</button>
             </div>
         </div>
 
@@ -460,12 +440,10 @@
             </div>
         </div>
 
-        <h2 style="margin-top: 40px;">Manage Bracket Infrastructure</h2>
-        <div class="overflow-container">
-            <div id="adminBracket" class="bracket-container"></div>
-        </div>
-        <div style="margin-top: 15px; text-align: right;">
-            <button onclick="saveBracketEdits()">Save Bracket Changes</button>
+        <h2 style="margin-top: 40px;">Manage Live Match Cards</h2>
+        <div id="adminMatches" class="match-list-grid"></div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="saveMatchEdits()">Save All Matches</button>
         </div>
     </div>
 </div>
@@ -497,28 +475,27 @@ let databaseState = {
     tournaments: {
         "default_arena": {
             name: "Alpha Tournament",
-            size: "8",
+            teamCount: 8,
             players: [],
-            bracket: getDefaultBracketStructure("8")
+            matches: generateInitialMatches(8)
         }
     }
 };
 
-function getDefaultBracketStructure(size = "8") {
-    const base = {
-        s1_t1: "Team Alpha", s1_t2: "Team Omega", s1_s1: "0", s1_s2: "0",
-        s2_t1: "Team Beta",  s2_t2: "Team Gamma", s2_s1: "0", s2_s2: "0",
-        f_t1: "TBD",         f_t2: "TBD",         f_s1: "0",  f_s2: "0"
-    };
-    if (size === "8") {
-        base.q1_t1 = "Team Q1"; base.q1_t2 = "Team Q2"; base.q1_s1 = "0"; base.q1_s2 = "0";
-        base.q2_t1 = "Team Q3"; base.q2_t2 = "Team Q4"; base.q2_s1 = "0"; base.q2_s2 = "0";
-        base.q3_t1 = "Team Q5"; base.q3_t2 = "Team Q6"; base.q3_s1 = "0"; base.q3_s2 = "0";
-        base.q4_t1 = "Team Q7"; base.q4_t2 = "Team Q8"; base.q4_s1 = "0"; base.q4_s2 = "0";
-        base.s1_t1 = "TBD"; base.s1_t2 = "TBD";
-        base.s2_t1 = "TBD"; base.s2_t2 = "TBD";
+// Calculates how many match cards are needed to single-eliminate any arbitrary size array
+function generateInitialMatches(teamCount) {
+    const totalMatches = Math.max(1, teamCount - 1);
+    const matchesArray = [];
+    for(let i = 1; i <= totalMatches; i++) {
+        matchesArray.push({
+            id: i,
+            t1: `Team TBD`,
+            t2: `Team TBD`,
+            s1: 0,
+            s2: 0
+        });
     }
-    return base;
+    return matchesArray;
 }
 
 /* ================= REALTIME SYNC ENGINE ================= */
@@ -531,14 +508,14 @@ onSnapshot(GLOBAL_DOC_REF, (snap) => {
     
     populateTournamentSelectors();
     updateLeaderboards();
-    renderBrackets();
+    renderMatches();
 });
 
 async function saveState() {
     await setDoc(GLOBAL_DOC_REF, databaseState);
 }
 
-/* ================= ECOSYSTEM MULTI-TOURNAMENT UTILS ================= */
+/* ================= MULTI-TOURNAMENT ENGINE UTILS ================= */
 function populateTournamentSelectors() {
     const selector = document.getElementById("globalTourneySelect");
     const previousSelection = selector.value || currentTourneyId;
@@ -559,64 +536,70 @@ function populateTournamentSelectors() {
         selector.value = currentTourneyId;
     }
 
-    // Update size dropdown in management configuration block
-    const sizeConfig = document.getElementById("activeBracketSizeSelector");
-    if (sizeConfig && databaseState.tournaments[currentTourneyId]) {
-        sizeConfig.value = databaseState.tournaments[currentTourneyId].size || "8";
+    const countModifier = document.getElementById("activeTeamsCountModifier");
+    if (countModifier && databaseState.tournaments[currentTourneyId]) {
+        countModifier.value = databaseState.tournaments[currentTourneyId].teamCount || 8;
     }
 }
 
 function switchTournament(id) {
     currentTourneyId = id;
     updateLeaderboards();
-    renderBrackets();
+    renderMatches();
 }
 
 async function createNewTournament() {
     const nameInput = document.getElementById("newTourneyName");
-    const sizeSelect = document.getElementById("newTourneySize");
+    const countInput = document.getElementById("newTourneyTeamsCount");
     const name = nameInput.value.trim();
+    const count = parseInt(countInput.value) || 8;
+
     if (!name) return alert("Please type a deployment name!");
+    if (count < 2) return alert("Tournaments require at least 2 teams!");
 
     const newId = "arena_" + Date.now();
     databaseState.tournaments[newId] = {
         name: name,
-        size: sizeSelect.value,
+        teamCount: count,
         players: [],
-        bracket: getDefaultBracketStructure(sizeSelect.value)
+        matches: generateInitialMatches(count)
     };
 
     nameInput.value = "";
+    countInput.value = "";
     currentTourneyId = newId;
     await saveState();
 }
 
-async function changeActiveBracketSize(newSize) {
+async function changeActiveTeamsCount() {
     if (!databaseState.tournaments[currentTourneyId]) return;
-    if (!confirm(`Warning: Adjusting team capacity will clear out your current layout configurations. Proceed?`)) {
-        document.getElementById("activeBracketSizeSelector").value = databaseState.tournaments[currentTourneyId].size;
+    const countInput = document.getElementById("activeTeamsCountModifier");
+    const newCount = parseInt(countInput.value) || 8;
+
+    if (newCount < 2) return alert("Tournaments must have at least 2 teams!");
+    if (!confirm(`Warning: Changing team size will reset your ongoing matches setup for this arena. Proceed?`)) {
+        countInput.value = databaseState.tournaments[currentTourneyId].teamCount;
         return;
     }
 
-    databaseState.tournaments[currentTourneyId].size = newSize;
-    databaseState.tournaments[currentTourneyId].bracket = getDefaultBracketStructure(newSize);
+    databaseState.tournaments[currentTourneyId].teamCount = newCount;
+    databaseState.tournaments[currentTourneyId].matches = generateInitialMatches(newCount);
     await saveState();
 }
 
 async function deleteActiveTournament() {
     if (!databaseState.tournaments[currentTourneyId]) return;
-    if (!confirm(`CRITICAL CRASH DANGER:\nAre you entirely sure you want to delete "${databaseState.tournaments[currentTourneyId].name}"? All data inside will be wiped.`)) return;
+    if (!confirm(`Are you sure you want to permanently delete "${databaseState.tournaments[currentTourneyId].name}"?`)) return;
 
     delete databaseState.tournaments[currentTourneyId];
-    
     const remainingIds = Object.keys(databaseState.tournaments);
+    
     if (remainingIds.length === 0) {
-        // Safe fall-back system generation reset if completely emptied out
         databaseState.tournaments["default_arena"] = {
             name: "Alpha Tournament",
-            size: "8",
+            teamCount: 8,
             players: [],
-            bracket: getDefaultBracketStructure("8")
+            matches: generateInitialMatches(8)
         };
         currentTourneyId = "default_arena";
     } else {
@@ -624,19 +607,15 @@ async function deleteActiveTournament() {
     }
 
     await saveState();
-    alert("Tournament arena wiped successfully.");
+    alert("Tournament deleted.");
 }
 
 function getActivePlayers() {
     return databaseState.tournaments[currentTourneyId]?.players || [];
 }
 
-function getActiveBracket() {
-    return databaseState.tournaments[currentTourneyId]?.bracket || getDefaultBracketStructure("8");
-}
-
-function getActiveSize() {
-    return databaseState.tournaments[currentTourneyId]?.size || "8";
+function getActiveMatches() {
+    return databaseState.tournaments[currentTourneyId]?.matches || [];
 }
 
 /* ================= SORTING LOGIC ================= */
@@ -682,7 +661,7 @@ function login() {
     }
 }
 
-/* ================= MATH CALCULATION FILTERS ================= */
+/* ================= DATA RENDER FORMATTING FILTERS ================= */
 function winRate(w, l) {
     if (w + l === 0) return "0.0%";
     return ((w / (w + l)) * 100).toFixed(1) + "%";
@@ -705,7 +684,7 @@ function getKdStyle(k, d) {
     return rawKd >= 1.0 ? "color: var(--success); font-weight: bold;" : "color: var(--danger); font-weight: bold;";
 }
 
-/* ================= DOM SYNCHRONIZER ================= */
+/* ================= LEADERBOARD SYNC SYSTEM ================= */
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     
@@ -777,135 +756,69 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     });
 }
 
-/* ================= DYNAMIC BRACKET SYSTEM GENERATION ================= */
-function renderBrackets() {
-    const b = getActiveBracket();
-    const size = getActiveSize();
+/* ================= MATCHES DATA RENDERING ================= */
+function renderMatches() {
+    const matches = getActiveMatches();
+    const publicContainer = document.getElementById("publicMatches");
+    const adminContainer = document.getElementById("adminMatches");
 
-    const publicContainer = document.getElementById("publicBracket");
-    const adminContainer = document.getElementById("adminBracket");
+    let publicHTML = "";
+    let adminHTML = "";
 
-    const renderQuarterfinalsPublic = () => `
-        <div class="bracket-round">
-            <div class="bracket-round-title">Quarterfinals</div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.q1_t1}</span><span class="public-score">${b.q1_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.q1_t2}</span><span class="public-score">${b.q1_s2}</span></div>
+    matches.forEach(m => {
+        publicHTML += `
+            <div class="match-card">
+                <div class="match-title">Match ID: #${m.id}</div>
+                <div class="match-team-row">
+                    <span class="view-team-name">${m.t1}</span>
+                    <span class="view-score">${m.s1}</span>
+                </div>
+                <div class="match-team-row">
+                    <span class="view-team-name">${m.t2}</span>
+                    <span class="view-score">${m.s2}</span>
+                </div>
             </div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.q2_t1}</span><span class="public-score">${b.q2_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.q2_t2}</span><span class="public-score">${b.q2_s2}</span></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.q3_t1}</span><span class="public-score">${b.q3_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.q3_t2}</span><span class="public-score">${b.q3_s2}</span></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.q4_t1}</span><span class="public-score">${b.q4_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.q4_t2}</span><span class="public-score">${b.q4_s2}</span></div>
-            </div>
-        </div>`;
+        `;
 
-    const renderQuarterfinalsAdmin = () => `
-        <div class="bracket-round">
-            <div class="bracket-round-title">Quarterfinals</div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq1_t1" class="team-name" value="${b.q1_t1}"><input id="bq1_s1" class="team-score" type="number" value="${b.q1_s1}"></div>
-                <div class="bracket-team"><input id="bq1_t2" class="team-name" value="${b.q1_t2}"><input id="bq1_s2" class="team-score" type="number" value="${b.q1_s2}"></div>
+        adminHTML += `
+            <div class="match-card" data-match-id="${m.id}">
+                <div class="match-title">Edit Match ID: #${m.id}</div>
+                <div class="match-team-row">
+                    <input class="edit-name" id="mid_${m.id}_t1" value="${m.t1}">
+                    <input class="edit-score" type="number" id="mid_${m.id}_s1" value="${m.s1}">
+                </div>
+                <div class="match-team-row">
+                    <input class="edit-name" id="mid_${m.id}_t2" value="${m.t2}">
+                    <input class="edit-score" type="number" id="mid_${m.id}_s2" value="${m.s2}">
+                </div>
             </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq2_t1" class="team-name" value="${b.q2_t1}"><input id="bq2_s1" class="team-score" type="number" value="${b.q2_s1}"></div>
-                <div class="bracket-team"><input id="bq2_t2" class="team-name" value="${b.q2_t2}"><input id="bq2_s2" class="team-score" type="number" value="${b.q2_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq3_t1" class="team-name" value="${b.q3_t1}"><input id="bq3_s1" class="team-score" type="number" value="${b.q3_s1}"></div>
-                <div class="bracket-team"><input id="bq3_t2" class="team-name" value="${b.q3_t2}"><input id="bq3_s2" class="team-score" type="number" value="${b.q3_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq4_t1" class="team-name" value="${b.q4_t1}"><input id="bq4_s1" class="team-score" type="number" value="${b.q4_s1}"></div>
-                <div class="bracket-team"><input id="bq4_t2" class="team-name" value="${b.q4_t2}"><input id="bq4_s2" class="team-score" type="number" value="${b.q4_s2}"></div>
-            </div>
-        </div>`;
+        `;
+    });
 
-    const publicHTML = `
-        ${size === "8" ? renderQuarterfinalsPublic() : ""}
-        <div class="bracket-round">
-            <div class="bracket-round-title">Semifinals</div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.s1_t1}</span><span class="public-score">${b.s1_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.s1_t2}</span><span class="public-score">${b.s1_s2}</span></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><span class="public-team-name">${b.s2_t1}</span><span class="public-score">${b.s2_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name">${b.s2_t2}</span><span class="public-score">${b.s2_s2}</span></div>
-            </div>
-        </div>
-        <div class="bracket-round">
-            <div class="bracket-round-title">Grand Finals</div>
-            <div class="matchup" style="border-color: var(--gold); box-shadow: 0 0 15px rgba(241,196,15,0.2);">
-                <div class="bracket-team"><span class="public-team-name" style="color: var(--gold);">${b.f_t1}</span><span class="public-score">${b.f_s1}</span></div>
-                <div class="bracket-team"><span class="public-team-name" style="color: var(--gold);">${b.f_t2}</span><span class="public-score">${b.f_s2}</span></div>
-            </div>
-        </div>
-    `;
-
-    const adminHTML = `
-        ${size === "8" ? renderQuarterfinalsAdmin() : ""}
-        <div class="bracket-round">
-            <div class="bracket-round-title">Semifinals</div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bs1_t1" class="team-name" value="${b.s1_t1}"><input id="bs1_s1" class="team-score" type="number" value="${b.s1_s1}"></div>
-                <div class="bracket-team"><input id="bs1_t2" class="team-name" value="${b.s1_t2}"><input id="bs1_s2" class="team-score" type="number" value="${b.s1_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bs2_t1" class="team-name" value="${b.s2_t1}"><input id="bs2_s1" class="team-score" type="number" value="${b.s2_s1}"></div>
-                <div class="bracket-team"><input id="bs2_t2" class="team-name" value="${b.s2_t2}"><input id="bs2_s2" class="team-score" type="number" value="${b.s2_s2}"></div>
-            </div>
-        </div>
-        <div class="bracket-round">
-            <div class="bracket-round-title">Grand Finals</div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bf_t1" class="team-name" value="${b.f_t1}"><input id="bf_s1" class="team-score" type="number" value="${b.f_s1}"></div>
-                <div class="bracket-team"><input id="bf_t2" class="team-name" value="${b.f_t2}"><input id="bf_s2" class="team-score" type="number" value="${b.f_s2}"></div>
-            </div>
-        </div>
-    `;
-
-    publicContainer.innerHTML = publicHTML;
-    if (document.activeElement?.closest(`.bracket-container`) === null) {
-         adminContainer.innerHTML = adminHTML;
+    publicContainer.innerHTML = publicHTML || `<div style="color:var(--text-muted);">No matches scheduled.</div>`;
+    
+    if (document.activeElement?.closest(`.match-list-grid`) === null) {
+        adminContainer.innerHTML = adminHTML || `<div style="color:var(--text-muted);">No matches scheduled.</div>`;
     }
 }
 
-async function saveBracketEdits() {
+async function saveMatchEdits() {
     if (!databaseState.tournaments[currentTourneyId]) return;
-    const size = getActiveSize();
-    
-    const targetBracket = {
-        s1_t1: document.getElementById("bs1_t1").value, s1_t2: document.getElementById("bs1_t2").value,
-        s1_s1: document.getElementById("bs1_s1").value, s1_s2: document.getElementById("bs1_s2").value,
-        
-        s2_t1: document.getElementById("bs2_t1").value, s2_t2: document.getElementById("bs2_t2").value,
-        s2_s1: document.getElementById("bs2_s1").value, s2_s2: document.getElementById("bs2_s2").value,
-        
-        f_t1: document.getElementById("bf_t1").value,   f_t2: document.getElementById("bf_t2").value,
-        f_s1: document.getElementById("bf_s1").value,   f_s2: document.getElementById("bf_s2").value
-    };
+    const matches = databaseState.tournaments[currentTourneyId].matches || [];
 
-    if (size === "8") {
-        targetBracket.q1_t1 = document.getElementById("bq1_t1").value; targetBracket.q1_t2 = document.getElementById("bq1_t2").value;
-        targetBracket.q1_s1 = document.getElementById("bq1_s1").value; targetBracket.q1_s2 = document.getElementById("bq1_s2").value;
-        targetBracket.q2_t1 = document.getElementById("bq2_t1").value; targetBracket.q2_t2 = document.getElementById("bq2_t2").value;
-        targetBracket.q2_s1 = document.getElementById("bq2_s1").value; targetBracket.q2_s2 = document.getElementById("bq2_s2").value;
-        targetBracket.q3_t1 = document.getElementById("bq3_t1").value; targetBracket.q3_t2 = document.getElementById("bq3_t2").value;
-        targetBracket.q3_s1 = document.getElementById("bq3_s1").value; targetBracket.q3_s2 = document.getElementById("bq3_s2").value;
-        targetBracket.q4_t1 = document.getElementById("bq4_t1").value; targetBracket.q4_t2 = document.getElementById("bq4_t2").value;
-        targetBracket.q4_s1 = document.getElementById("bq4_s1").value; targetBracket.q4_s2 = document.getElementById("bq4_s2").value;
-    }
+    const updatedMatches = matches.map(m => {
+        return {
+            id: m.id,
+            t1: document.getElementById(`mid_${m.id}_t1`).value,
+            t2: document.getElementById(`mid_${m.id}_t2`).value,
+            s1: parseInt(document.getElementById(`mid_${m.id}_s1`).value) || 0,
+            s2: parseInt(document.getElementById(`mid_${m.id}_s2`).value) || 0
+        };
+    });
 
-    databaseState.tournaments[currentTourneyId].bracket = targetBracket;
+    databaseState.tournaments[currentTourneyId].matches = updatedMatches;
     await saveState();
-    alert("Bracket architecture updated!");
+    alert("All match scores and assignments synchronized!");
 }
 
 /* ================= DATA HANDLERS ================= */
@@ -914,7 +827,7 @@ async function addPlayer() {
     if (!name) return alert("Enter name");
     
     let activePlayers = getActivePlayers();
-    if (activePlayers.some(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Player already registered in this arena!");
+    if (activePlayers.some(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Player already registered!");
 
     activePlayers.push({ name, wins: 0, losses: 0, kills: 0, deaths: 0 });
     document.getElementById("name").value = "";
@@ -932,12 +845,12 @@ async function updatePlayer(i, field, value) {
 async function removePlayer(i) {
     let activePlayers = getActivePlayers();
     if (!activePlayers[i]) return;
-    if (!confirm("Are you sure you want to delete this player?")) return;
+    if (!confirm("Delete player?")) return;
     activePlayers.splice(i, 1);
     await saveState();
 }
 
-/* ================= BACKGROUND CANVASES MATRIX ENGINE ================= */
+/* ================= BACKGROUND PARTICLES ENGINE ================= */
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
@@ -991,9 +904,9 @@ window.updatePlayer = updatePlayer;
 window.removePlayer = removePlayer;
 window.switchTournament = switchTournament;
 window.createNewTournament = createNewTournament;
-window.saveBracketEdits = saveBracketEdits;
-window.changeActiveBracketSize = changeActiveBracketSize;
+window.changeActiveTeamsCount = changeActiveTeamsCount;
 window.deleteActiveTournament = deleteActiveTournament;
+window.saveMatchEdits = saveMatchEdits;
 
 showPublic();
 </script>
