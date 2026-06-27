@@ -1,130 +1,336 @@
-import { motion } from "framer-motion";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>R6 Tournament Hub</title>
 
-const players = [
-  { name: "Player1", wins: 12, losses: 3 },
-  { name: "Player2", wins: 10, losses: 5 },
-  { name: "Player3", wins: 8, losses: 6 },
-  { name: "Player4", wins: 15, losses: 2 },
-];
+<style>
+body {
+    font-family: Arial;
+    background: #0f0f0f;
+    color: white;
+    text-align: center;
+}
 
-const topPlayers = ["Player4", "Player1", "Player2"];
+h1 { color: #ffcc00; }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 }
-  }
+button {
+    padding: 8px 12px;
+    margin: 5px;
+    background: #ffcc00;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+input {
+    padding: 6px;
+    margin: 3px;
+}
+
+table {
+    width: 90%;
+    margin: auto;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 10px;
+}
+
+th { background: #222; }
+
+tr:nth-child(even) { background: #1a1a1a; }
+tr:hover { background: #2a2a2a; }
+
+#adminPanel { display: none; }
+#loginBox { display: none; }
+
+input[type="number"] { width: 60px; }
+</style>
+</head>
+
+<body>
+
+<h1>R6 Tournament Hub</h1>
+
+<button onclick="showPublic()">Public Leaderboard</button>
+<button onclick="openLogin()">Admin Panel</button>
+
+<br>
+
+<button onclick="setSort('kd')">Sort by K/D</button>
+<button onclick="setSort('win')">Sort by Win %</button>
+
+<hr>
+
+<div id="publicView">
+    <h2>Leaderboard</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Win %</th>
+            <th>Kills</th>
+            <th>Deaths</th>
+            <th>K/D</th>
+        </tr>
+        </thead>
+        <tbody id="publicTable"></tbody>
+    </table>
+</div>
+
+<div id="loginBox">
+    <h2>Admin Login</h2>
+    <input type="password" id="password" placeholder="Password">
+    <br>
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="adminPanel">
+    <h2>Admin Panel</h2>
+
+    <input id="name" placeholder="Player Name">
+    <button onclick="addPlayer()">Add Player</button>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Kills</th>
+            <th>Deaths</th>
+            <th>Win %</th>
+            <th>K/D</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="adminTable"></tbody>
+    </table>
+</div>
+
+<script type="module">
+/* ================= FIREBASE ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {
+    getFirestore,
+    doc,
+    setDoc,
+    getDoc,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+/* 🔴 PUT YOUR FIREBASE CONFIG HERE */
+const firebaseConfig = {
+    apiKey: "AIzaSyCB88kRN8uPwJc8q_KcGqlmPA9rBCF58ro",
+    authDomain: "r6-tourney.firebaseapp.com",
+    projectId: "r6-tourney",
+    storageBucket: "r6-tourney.firebasestorage.app",
+    messagingSenderId: "348732226476",
+    appId: "1:348732226476:web:dea6f1907aed3ddbc29809"
 };
 
-export default function App() {
-  return (
-    <motion.div
-      className="min-h-screen bg-[#0b0f1a] text-white p-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-    >
-      {/* HEADER */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Tournament Stats</h1>
-        <p className="text-gray-400 text-sm">
-          Live player performance dashboard
-        </p>
-      </div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-      {/* STATS CARDS */}
-      <motion.div
-        className="grid grid-cols-3 gap-4 mb-6"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        <StatCard title="Players" value="24" />
-        <StatCard title="Matches" value="58" />
-        <StatCard title="Win Rate Avg" value="62%" />
-      </motion.div>
+const DOC_REF = doc(db, "leaderboard", "players");
 
-      {/* MAIN GRID */}
-      <div className="grid grid-cols-3 gap-6">
+/* ================= STATE ================= */
+const ADMIN_PASSWORD = "admin123";
+let sortMode = "kd";
+let players = [];
 
-        {/* LEADERBOARD */}
-        <div className="col-span-2 bg-[#111827] rounded-2xl p-4 border border-white/5 shadow-lg">
-          <h2 className="text-lg font-semibold mb-4">
-            Leaderboard
-          </h2>
+/* ================= REALTIME SYNC ================= */
+onSnapshot(DOC_REF, (snap) => {
+    if (snap.exists()) {
+        players = snap.data().players || [];
+    } else {
+        players = [];
+    }
 
-          <div className="space-y-3">
-            {players.map((p, i) => (
-              <motion.div
-                key={p.name}
-                className="flex items-center justify-between bg-[#0b0f1a] p-3 rounded-xl border border-white/5"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.07, duration: 0.25 }}
-                whileHover={{
-                  scale: 1.02,
-                  backgroundColor: "#121a2a"
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-500">#{i + 1}</span>
-                  <span className="font-medium">{p.name}</span>
-                </div>
+    renderPublic();
+    renderAdmin();
+});
 
-                <div className="text-sm">
-                  <span className="text-green-400">{p.wins}W</span>
-                  {" / "}
-                  <span className="text-red-400">{p.losses}L</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* SIDE PANEL */}
-        <div className="bg-[#111827] rounded-2xl p-4 border border-white/5 shadow-lg">
-          <h2 className="text-lg font-semibold mb-4">
-            Top Players
-          </h2>
-
-          <div className="space-y-3">
-            {topPlayers.map((name, i) => (
-              <motion.div
-                key={name}
-                className="bg-[#0b0f1a] p-3 rounded-xl flex justify-between border border-white/5"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.03 }}
-              >
-                <span>{name}</span>
-                <span className="text-yellow-400">🔥</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
+/* ================= SAVE ================= */
+async function save() {
+    await setDoc(DOC_REF, {
+        players
+    });
 }
 
-/* STAT CARD */
-function StatCard({ title, value }) {
-  return (
-    <motion.div
-      className="bg-[#111827] p-4 rounded-2xl border border-white/5"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        y: -4,
-        scale: 1.02,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.4)"
-      }}
-      transition={{ duration: 0.25 }}
-    >
-      <p className="text-gray-400 text-sm">{title}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
-    </motion.div>
-  );
+/* ================= SORT ================= */
+function setSort(mode) {
+    sortMode = mode;
+    renderPublic();
+    renderAdmin();
 }
+
+function getSortedPlayers() {
+    let copy = [...players];
+
+    copy.sort((a, b) => {
+        if (sortMode === "win") {
+            return (b.wins / (b.wins + b.losses || 1)) -
+                   (a.wins / (a.wins + a.losses || 1));
+        } else {
+            return (b.kills / (b.deaths || 1)) -
+                   (a.kills / (a.deaths || 1));
+        }
+    });
+
+    return copy;
+}
+
+/* ================= VIEW ================= */
+function showPublic() {
+    document.getElementById("publicView").style.display = "block";
+    document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+    renderPublic();
+}
+
+function openLogin() {
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("publicView").style.display = "none";
+    document.getElementById("adminPanel").style.display = "none";
+}
+
+/* ================= LOGIN ================= */
+function login() {
+    let pass = document.getElementById("password").value;
+
+    if (pass === ADMIN_PASSWORD) {
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        renderAdmin();
+    } else {
+        alert("Wrong password");
+    }
+}
+
+/* ================= CALC ================= */
+function winRate(w, l) {
+    if (w + l === 0) return "0%";
+    return ((w / (w + l)) * 100).toFixed(1) + "%";
+}
+
+function kd(k, d) {
+    if (d === 0) return k.toFixed(2);
+    return (k / d).toFixed(2);
+}
+
+/* ================= RENDER PUBLIC ================= */
+function renderPublic() {
+    let table = document.getElementById("publicTable");
+    table.innerHTML = "";
+
+    let sorted = getSortedPlayers();
+
+    sorted.forEach((p, i) => {
+        table.innerHTML += `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${p.name}</td>
+            <td>${p.wins}</td>
+            <td>${p.losses}</td>
+            <td>${winRate(p.wins, p.losses)}</td>
+            <td>${p.kills}</td>
+            <td>${p.deaths}</td>
+            <td>${kd(p.kills, p.deaths)}</td>
+        </tr>`;
+    });
+}
+
+/* ================= RENDER ADMIN ================= */
+function renderAdmin() {
+    let table = document.getElementById("adminTable");
+    table.innerHTML = "";
+
+    let sorted = getSortedPlayers();
+
+    sorted.forEach((p, rank) => {
+        const realIndex = players.indexOf(p);
+
+        table.innerHTML += `
+        <tr>
+            <td>${rank + 1}</td>
+
+            <td>
+                <input value="${p.name}"
+                onchange="update(${realIndex}, 'name', this.value)">
+            </td>
+
+            <td><input type="number" value="${p.wins}"
+                onchange="update(${realIndex}, 'wins', this.value)"></td>
+
+            <td><input type="number" value="${p.losses}"
+                onchange="update(${realIndex}, 'losses', this.value)"></td>
+
+            <td><input type="number" value="${p.kills}"
+                onchange="update(${realIndex}, 'kills', this.value)"></td>
+
+            <td><input type="number" value="${p.deaths}"
+                onchange="update(${realIndex}, 'deaths', this.value)"></td>
+
+            <td>${winRate(p.wins, p.losses)}</td>
+            <td>${kd(p.kills, p.deaths)}</td>
+
+            <td><button onclick="remove(${realIndex})">Delete</button></td>
+        </tr>`;
+    });
+}
+
+/* ================= CRUD ================= */
+async function addPlayer() {
+    let name = document.getElementById("name").value.trim();
+    if (!name) return alert("Enter name");
+
+    players.push({
+        name,
+        wins: 0,
+        losses: 0,
+        kills: 0,
+        deaths: 0
+    });
+
+    document.getElementById("name").value = "";
+    await save();
+}
+
+async function update(i, field, value) {
+    if (!players[i]) return;
+
+    if (field === "name") players[i].name = value;
+    else players[i][field] = Number(value) || 0;
+
+    await save();
+}
+
+async function remove(i) {
+    players.splice(i, 1);
+    await save();
+}
+
+/* ================= EXPOSE FUNCTIONS ================= */
+window.showPublic = showPublic;
+window.openLogin = openLogin;
+window.login = login;
+window.setSort = setSort;
+window.addPlayer = addPlayer;
+window.update = update;
+window.remove = remove;
+
+/* default view */
+showPublic();
+</script>
+
+</body>
+</html>
