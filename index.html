@@ -882,17 +882,34 @@ function getSortedPlayers() {
     return copy;
 }
 
-function showPublic() {
-    document.getElementById("publicView").style.display = "block";
+function showLeaderboard() {
+    document.getElementById("leaderboardView").style.display = "block";
+    document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("sortContextArea").style.display = "flex";
     
-    document.getElementById("btnNavPublic").classList.add("active-nav");
+    document.getElementById("btnNavLeaderboard").classList.add("active-nav");
+    document.getElementById("btnNavBracket").classList.remove("active-nav");
     document.getElementById("btnNavTiers").classList.remove("active-nav");
     document.getElementById("btnNavAdmin").classList.remove("active-nav");
     updateLeaderboards();
+}
+
+function showBracket() {
+    document.getElementById("leaderboardView").style.display = "none";
+    document.getElementById("bracketView").style.display = "block";
+    document.getElementById("tierListView").style.display = "none";
+    document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("sortContextArea").style.display = "none";
+    
+    document.getElementById("btnNavBracket").classList.add("active-nav");
+    document.getElementById("btnNavLeaderboard").classList.remove("active-nav");
+    document.getElementById("btnNavTiers").classList.remove("active-nav");
+    document.getElementById("btnNavAdmin").classList.remove("active-nav");
+    renderBrackets();
 }
 
 function showTiers() {
