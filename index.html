@@ -43,9 +43,11 @@ th, td {
 th { background: #222; }
 
 tr:nth-child(even) { background: #1a1a1a; }
+tr:hover { background: #2a2a2a; }
 
 #adminPanel { display: none; }
 #loginBox { display: none; }
+input[type="number"] { width: 60px; }
 </style>
 </head>
 
@@ -53,9 +55,13 @@ tr:nth-child(even) { background: #1a1a1a; }
 
 <h1>R6 Tournament Hub</h1>
 
-<!-- NAV -->
 <button onclick="showPublic()">Public Leaderboard</button>
 <button onclick="openLogin()">Admin Panel</button>
+
+<br>
+
+<button onclick="setSort('kd')">Sort by K/D</button>
+<button onclick="setSort('win')">Sort by Win %</button>
 
 <hr>
 
@@ -65,6 +71,7 @@ tr:nth-child(even) { background: #1a1a1a; }
     <table>
         <thead>
             <tr>
+                <th>Rank</th>
                 <th>Player</th>
                 <th>Wins</th>
                 <th>Losses</th>
@@ -86,18 +93,17 @@ tr:nth-child(even) { background: #1a1a1a; }
     <button onclick="login()">Login</button>
 </div>
 
-<!-- ADMIN PANEL -->
+<!-- ADMIN -->
 <div id="adminPanel">
     <h2>Admin Panel</h2>
 
-    <div>
-        <input id="name" placeholder="Player Name">
-        <button onclick="addPlayer()">Add Player</button>
-    </div>
+    <input id="name" placeholder="Player Name">
+    <button onclick="addPlayer()">Add Player</button>
 
     <table>
         <thead>
             <tr>
+                <th>Rank</th>
                 <th>Player</th>
                 <th>Wins</th>
                 <th>Losses</th>
@@ -114,9 +120,44 @@ tr:nth-child(even) { background: #1a1a1a; }
 
 <script>
 
-const ADMIN_PASSWORD = "admin123"; // CHANGE THIS
+const ADMIN_PASSWORD = "admin123";
 
-let players = JSON.parse(localStorage.getItem("players")) || [];
+let sortMode = "kd"; // default
+
+let players = load();
+
+/* ---------------- STORAGE ---------------- */
+function save() {
+    localStorage.setItem("players", btoa(JSON.stringify(players)));
+}
+
+function load() {
+    const raw = localStorage.getItem("players");
+    return raw ? JSON.parse(atob(raw)) : [];
+}
+
+/* ---------------- SORT ---------------- */
+function setSort(mode) {
+    sortMode = mode;
+    renderPublic();
+    renderAdmin();
+}
+
+function getSortedPlayers() {
+    let copy = [...players];
+
+    copy.sort((a, b) => {
+        if (sortMode === "win") {
+            return (b.wins / (b.wins + b.losses || 1)) -
+                   (a.wins / (a.wins + a.losses || 1));
+        } else {
+            return (b.kills / (b.deaths || 1)) -
+                   (a.kills / (a.deaths || 1));
+        }
+    });
+
+    return copy;
+}
 
 /* ---------------- VIEW SWITCH ---------------- */
 function showPublic() {
@@ -156,19 +197,17 @@ function kd(k, d) {
     return (k / d).toFixed(2);
 }
 
-/* ---------------- SAVE ---------------- */
-function save() {
-    localStorage.setItem("players", JSON.stringify(players));
-}
-
-/* ---------------- PUBLIC TABLE ---------------- */
+/* ---------------- PUBLIC ---------------- */
 function renderPublic() {
     let table = document.getElementById("publicTable");
     table.innerHTML = "";
 
-    players.forEach(p => {
+    let sorted = getSortedPlayers();
+
+    sorted.forEach((p, i) => {
         table.innerHTML += `
         <tr>
+            <td>${i + 1}</td>
             <td>${p.name}</td>
             <td>${p.wins}</td>
             <td>${p.losses}</td>
@@ -181,22 +220,27 @@ function renderPublic() {
     });
 }
 
-/* ---------------- ADMIN TABLE ---------------- */
+/* ---------------- ADMIN ---------------- */
 function renderAdmin() {
     let table = document.getElementById("adminTable");
     table.innerHTML = "";
 
-    players.forEach((p, i) => {
+    let sorted = getSortedPlayers();
+
+    sorted.forEach((p, i) => {
         table.innerHTML += `
         <tr>
-            <td>${p.name}</td>
-            <td><input type="number" value="${p.wins}" onchange="update(${i},'wins',this.value)"></td>
-            <td><input type="number" value="${p.losses}" onchange="update(${i},'losses',this.value)"></td>
-            <td><input type="number" value="${p.kills}" onchange="update(${i},'kills',this.value)"></td>
-            <td><input type="number" value="${p.deaths}" onchange="update(${i},'deaths',this.value)"></td>
+            <td>${i + 1}</td>
+            <td>
+                <input value="${p.name}" onchange="p.name=this.value;save();">
+            </td>
+            <td><input type="number" value="${p.wins}" onchange="update(${players.indexOf(p)},'wins',this.value)"></td>
+            <td><input type="number" value="${p.losses}" onchange="update(${players.indexOf(p)},'losses',this.value)"></td>
+            <td><input type="number" value="${p.kills}" onchange="update(${players.indexOf(p)},'kills',this.value)"></td>
+            <td><input type="number" value="${p.deaths}" onchange="update(${players.indexOf(p)},'deaths',this.value)"></td>
             <td>${winRate(p.wins, p.losses)}</td>
             <td>${kd(p.kills, p.deaths)}</td>
-            <td><button onclick="remove(${i})">Delete</button></td>
+            <td><button onclick="remove(${players.indexOf(p)})">Delete</button></td>
         </tr>
         `;
     });
@@ -223,7 +267,8 @@ function addPlayer() {
 
 /* ---------------- UPDATE ---------------- */
 function update(i, field, value) {
-    players[i][field] = parseInt(value) || 0;
+    let num = Number(value);
+    players[i][field] = Number.isFinite(num) ? num : 0;
     renderAdmin();
 }
 
