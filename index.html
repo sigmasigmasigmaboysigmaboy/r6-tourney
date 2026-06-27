@@ -513,42 +513,39 @@
             <select id="globalTourneySelect" onchange="switchTournament(this.value)"></select>
         </div>
 
-        <div class="nav-buttons">
-            <button id="btnNavPublic" onclick="showPublic()" class="active-nav">Public Dashboard</button>
-            <button id="btnNavTiers" onclick="showTiers()">Tier List</button>
-            <button id="btnNavAdmin" onclick="openLogin()">Admin Panel</button>
-        </div>
-
+<div class="nav-buttons">
+    <button id="btnNavLeaderboard" onclick="showLeaderboard()" class="active-nav">Leaderboard</button>
+    <button id="btnNavBracket" onclick="showBracket()">Bracket</button> <!-- New Button -->
+    <button id="btnNavTiers" onclick="showTiers()">Tier List</button>
+    <button id="btnNavAdmin" onclick="openLogin()">Admin Panel</button>
+</div>
+        
         <div id="sortContextArea" class="sort-buttons">
             <button id="btnSortKd" onclick="setSort('kd')" class="active-nav">Sort by K/D</button>
             <button id="btnSortWin" onclick="setSort('win')">Sort by Win %</button>
         </div>
     </header>
 
-    <!-- Public leaderboard and bracket View -->
-    <div id="publicView" class="view-panel">
-        <h2>Leaderboard</h2>
-        <div class="overflow-container">
-            <div class="grid-table public-grid">
-                <div class="grid-header">
-                    <div>Rank</div>
-                    <div>Player</div>
-                    <div>Wins</div>
-                    <div>Losses</div>
-                    <div>Win %</div>
-                    <div>Kills</div>
-                    <div>Deaths</div>
-                    <div>K/D</div>
-                </div>
-                <div id="publicTable" class="grid-body"></div>
+<!-- Public Leaderboard Panel -->
+<div id="leaderboardView" class="view-panel">
+    <h2>Leaderboard</h2>
+    <div class="overflow-container">
+        <div class="grid-table public-grid">
+            <div class="grid-header">
+                <div>Rank</div><div>Player</div><div>Wins</div><div>Losses</div><div>Win %</div><div>Kills</div><div>Deaths</div><div>K/D</div>
             </div>
-        </div>
-
-        <h2 style="margin-top: 40px;">Tournament Bracket Tree</h2>
-        <div class="overflow-container">
-            <div id="publicBracket" class="bracket-container"></div>
+            <div id="publicTable" class="grid-body"></div>
         </div>
     </div>
+</div>
+
+<!-- Public Bracket Panel -->
+<div id="bracketView" class="view-panel" style="display:none;">
+    <h2>Tournament Bracket Tree</h2>
+    <div class="overflow-container">
+        <div id="publicBracket" class="bracket-container"></div>
+    </div>
+</div>
 
 <!-- Updated Isolated Tier List View Panel -->
 <div id="tierListView" class="view-panel">
