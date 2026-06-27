@@ -929,7 +929,7 @@ function login() {
         document.getElementById("btnNavTiers").classList.remove("active-nav");
         updateLeaderboards();
     } else alert("Access Denied.");
-}
+
 
 function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
 function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
