@@ -987,14 +987,14 @@ function renderTierListLayout(sortedPlayers) {
         if (tiers[tierId].length === 0) {
             rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
         } else {
-            rowBox.innerHTML = tiers[tierId].map(name => `
-                <<div class="tier-badge badge-${tierId.toLowerCase()}" 
+rowBox.innerHTML = tiers[tierId].map(name => `
+    <div class="tier-badge badge-${tierId.toLowerCase()}" 
          draggable="true" 
          ondragstart="drag(event)" 
          id="player_${name.replace(/\s+/g, '')}">
          ${name}
     </div>
-            `).join('');
+`).join('');
         }
     });
 }
