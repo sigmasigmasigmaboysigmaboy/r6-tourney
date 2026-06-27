@@ -45,7 +45,6 @@
         min-height: 100vh;
     }
 
-    /* Animated Particle Canvas */
     #bg-canvas {
         position: fixed;
         top: 0;
@@ -68,6 +67,7 @@
         border-bottom: 2px solid var(--border);
         padding-bottom: 20px;
         animation: fadeInDown 0.6s ease-out;
+        text-align: center;
     }
 
     h1 {
@@ -80,7 +80,30 @@
         text-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
     }
 
-    /* Controls & Buttons */
+    /* Global Tournament Selector Controls */
+    .tourney-selector-zone {
+        margin: 15px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+    select {
+        padding: 10px 20px;
+        background: var(--bg-input);
+        color: white;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        outline: none;
+    }
+
+    select:focus {
+        border-color: var(--accent);
+    }
+
     .nav-buttons, .sort-buttons {
         display: flex;
         justify-content: center;
@@ -103,11 +126,7 @@
         border-radius: 6px;
     }
 
-    button:active {
-        transform: scale(0.95);
-        filter: brightness(0.9);
-    }
-
+    button:active { transform: scale(0.95); }
     button:hover {
         background: var(--accent-hover);
         box-shadow: 0 0 12px rgba(231, 76, 60, 0.5);
@@ -118,21 +137,12 @@
         color: var(--text-main);
         border: 1px solid var(--border);
     }
-
     button.secondary:hover {
         background: var(--border);
-        box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
     }
 
-    button.danger {
-        background: #95a5a6;
-        color: #fff;
-    }
-    
-    button.danger:hover {
-        background: var(--danger);
-        box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
-    }
+    button.danger { background: #95a5a6; color: #fff; }
+    button.danger:hover { background: var(--danger); }
 
     input {
         padding: 10px 14px;
@@ -143,15 +153,12 @@
         font-size: 0.9rem;
         transition: all 0.2s ease;
     }
-
     input:focus {
         outline: none;
         border-color: var(--accent);
-        box-shadow: 0 0 8px rgba(231, 76, 60, 0.2);
         background: #20222a;
     }
 
-    /* Panel Content Containers */
     .view-panel {
         background: var(--bg-card);
         padding: 25px;
@@ -160,7 +167,6 @@
         border: 1px solid var(--border);
         margin-top: 20px;
         backdrop-filter: blur(8px);
-        animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     h2 {
@@ -171,14 +177,21 @@
         color: #fff;
         border-left: 4px solid var(--accent);
         padding-left: 10px;
-        text-align: left;
     }
 
-    .add-player-form {
+    .management-block {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px dashed var(--border);
+        margin-bottom: 20px;
+    }
+
+    .inline-form {
         display: flex;
         gap: 10px;
-        margin-bottom: 25px;
-        justify-content: flex-start;
+        flex-wrap: wrap;
+        margin-top: 10px;
     }
 
     /* Column Sizing Rules */
@@ -189,14 +202,12 @@
         border-radius: 12px;
     }
 
-    .public-grid .grid-header, 
-    .public-grid .grid-row {
+    .public-grid .grid-header, .public-grid .grid-row {
         display: grid;
         grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1.2fr 1fr 1fr 1fr;
     }
 
-    .admin-grid .grid-header, 
-    .admin-grid .grid-row {
+    .admin-grid .grid-header, .admin-grid .grid-row {
         display: grid;
         grid-template-columns: 0.8fr 2.5fr 1fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr;
     }
@@ -218,7 +229,6 @@
         width: 100%;
     }
 
-    /* Row Capsules with Red Outlines */
     .grid-row {
         position: absolute;
         left: 0;
@@ -228,13 +238,11 @@
         border: 1px solid rgba(231, 76, 60, 0.4); 
         background: rgba(20, 21, 26, 0.7);
         border-radius: 8px;
-        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, border-color 0.2s ease;
     }
-
     .grid-row:hover {
         background: rgba(231, 76, 60, 0.12);
         border-color: var(--accent);
-        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
     }
 
     .grid-row > div {
@@ -243,37 +251,95 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-align: left;
     }
 
-    .grid-row input {
-        width: 100%;
-        padding: 6px 10px;
-        border-radius: 4px;
-    }
+    .grid-row input { width: 100%; padding: 6px 10px; border-radius: 4px; }
+    .grid-row input[type="number"] { text-align: center; }
 
-    .grid-row input[type="number"] {
-        text-align: center;
-    }
-
-    /* Podium Row Styling */
     .rank-1 { color: var(--gold) !important; font-weight: bold; text-shadow: 0 0 8px rgba(241, 196, 21, 0.3); }
     .rank-2 { color: var(--silver) !important; font-weight: bold; }
     .rank-3 { color: var(--bronze) !important; font-weight: bold; }
 
-    #loginBox {
-        max-width: 350px;
-        margin: 40px auto;
+    /* ================= BRACKET SYSTEM UI ================= */
+    .bracket-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 30px;
+        margin-top: 30px;
+        padding: 10px;
+        min-width: 900px;
     }
 
-    #loginBox input {
-        width: 100%;
+    .bracket-round {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+    }
+
+    .bracket-round-title {
+        text-align: center;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 2px;
         margin-bottom: 15px;
+        font-weight: bold;
+    }
+
+    .matchup {
+        background: rgba(20, 21, 26, 0.8);
+        border: 1px solid rgba(231, 76, 60, 0.3);
+        border-radius: 8px;
+        margin: 15px 0;
+        padding: 5px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    .bracket-team {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 4px;
+    }
+
+    .bracket-team:first-child {
+        border-bottom: 1px solid var(--border);
+    }
+
+    .bracket-team input.team-name {
+        background: transparent;
+        border: none;
+        color: white;
+        font-weight: 600;
+        width: 75%;
+        padding: 2px;
+    }
+    .bracket-team input.team-name:focus { background: var(--bg-input); }
+
+    .bracket-team input.team-score {
+        width: 40px;
+        text-align: center;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: white;
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 4px;
+    }
+
+    .public-score {
+        font-weight: bold;
+        color: var(--accent);
+        background: rgba(231, 76, 60, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        min-width: 30px;
         text-align: center;
     }
 
-    #loginBox button {
-        width: 100%;
+    .public-team-name {
+        font-weight: 600;
     }
 
     .overflow-container {
@@ -283,18 +349,7 @@
         padding: 4px;
     }
 
-    #adminPanel { display: none; }
-    #loginBox { display: none; }
-
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeInDown {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    #adminPanel, #loginBox { display: none; }
 </style>
 </head>
 
@@ -306,8 +361,13 @@
     <header>
         <h1>R6 Tournament Hub</h1>
         
+        <div class="tourney-selector-zone">
+            <label for="globalTourneySelect" style="font-weight: bold; color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem;">Active Arena:</label>
+            <select id="globalTourneySelect" onchange="switchTournament(this.value)"></select>
+        </div>
+
         <div class="nav-buttons">
-            <button onclick="showPublic()">Public Leaderboard</button>
+            <button onclick="showPublic()">Public Dashboard</button>
             <button onclick="openLogin()" class="secondary">Admin Panel</button>
         </div>
 
@@ -334,17 +394,31 @@
                 <div id="publicTable" class="grid-body"></div>
             </div>
         </div>
+
+        <h2 style="margin-top: 40px;">Tournament Bracket</h2>
+        <div class="overflow-container">
+            <div id="publicBracket" class="bracket-container"></div>
+        </div>
     </div>
 
     <div id="loginBox" class="view-panel">
         <h2>Admin Login</h2>
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">Access Database</button>
+        <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:15px; text-align:center;">
+        <button onclick="login()" style="width: 100%;">Access Database</button>
     </div>
 
     <div id="adminPanel" class="view-panel">
-        <h2>Admin Panel</h2>
+        <h2>Admin Tournament Management</h2>
         
+        <div class="management-block">
+            <span style="font-weight: bold; color: var(--accent);">Create New Tournament Arena</span>
+            <div class="inline-form">
+                <input id="newTourneyName" placeholder="e.g., Summer Cup 2026">
+                <button onclick="createNewTournament()">Generate Tournament</button>
+            </div>
+        </div>
+
+        <h2>Manage Players</h2>
         <div class="add-player-form">
             <input id="name" placeholder="Player Name">
             <button onclick="addPlayer()">Add Player</button>
@@ -366,18 +440,20 @@
                 <div id="adminTable" class="grid-body"></div>
             </div>
         </div>
+
+        <h2 style="margin-top: 40px;">Manage Bracket Infrastructure</h2>
+        <div class="overflow-container">
+            <div id="adminBracket" class="bracket-container"></div>
+        </div>
+        <div style="margin-top: 15px; text-align: right;">
+            <button onclick="saveBracketEdits()">Save Bracket Changes</button>
+        </div>
     </div>
 </div>
 
 <script type="module">
-/* ================= FIREBASE ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {
-    getFirestore,
-    doc,
-    setDoc,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCB88kRN8uPwJc8q_KcGqlmPA9rBCF58ro",
@@ -391,36 +467,116 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const DOC_REF = doc(db, "leaderboard", "players");
+// Complete structure document reference point
+const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-/* ================= STATE ================= */
+/* ================= APP CORE SYSTEM STATE ================= */
 const ADMIN_PASSWORD = "admin123";
 let sortMode = "kd";
-let players = [];
+let currentTourneyId = "default_arena";
 
-/* ================= REALTIME SYNC ================= */
-onSnapshot(DOC_REF, (snap) => {
-    if (snap.exists()) {
-        players = snap.data().players || [];
-    } else {
-        players = [];
+// Root dynamic database structure storage tree
+let databaseState = {
+    tournaments: {
+        "default_arena": {
+            name: "Alpha Tournament",
+            players: [],
+            bracket: getDefaultBracketStructure()
+        }
     }
-    updateLeaderboards();
-});
+};
 
-/* ================= SAVE ================= */
-async function save() {
-    await setDoc(DOC_REF, { players });
+function getDefaultBracketStructure() {
+    return {
+        q1_t1: "Team Alpha", q1_t2: "Team Omega", q1_s1: "0", q1_s2: "0",
+        q2_t1: "Team Beta",  q2_t2: "Team Gamma", q2_s1: "0", q2_s2: "0",
+        q3_t1: "Team Delta",  q3_t2: "Team Zeta",  q3_s1: "0", q3_s2: "0",
+        q4_t1: "Team Epsilon",q4_t2: "Team Theta", q4_s1: "0", q4_s2: "0",
+        s1_t1: "TBD", s1_t2: "TBD", s1_s1: "0", s1_s2: "0",
+        s2_t1: "TBD", s2_t2: "TBD", s2_s1: "0", s2_s2: "0",
+        f_t1: "TBD",  f_t2: "TBD",  f_s1: "0",  f_s2: "0"
+    };
 }
 
-/* ================= SORTING ================= */
+/* ================= REALTIME SYNC ENGINE ================= */
+onSnapshot(GLOBAL_DOC_REF, (snap) => {
+    if (snap.exists()) {
+        databaseState = snap.data();
+    } else {
+        // Run first-time setup safely
+        saveState();
+    }
+    
+    populateTournamentSelectors();
+    updateLeaderboards();
+    renderBrackets();
+});
+
+async function saveState() {
+    await setDoc(GLOBAL_DOC_REF, databaseState);
+}
+
+/* ================= ECOSYSTEM MULTI-TOURNAMENT UTILS ================= */
+function populateTournamentSelectors() {
+    const selector = document.getElementById("globalTourneySelect");
+    const previousSelection = selector.value || currentTourneyId;
+    
+    selector.innerHTML = "";
+    Object.keys(databaseState.tournaments).forEach(id => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.innerText = databaseState.tournaments[id].name;
+        selector.appendChild(option);
+    });
+
+    if (databaseState.tournaments[previousSelection]) {
+        selector.value = previousSelection;
+        currentTourneyId = previousSelection;
+    } else {
+        currentTourneyId = Object.keys(databaseState.tournaments)[0];
+        selector.value = currentTourneyId;
+    }
+}
+
+function switchTournament(id) {
+    currentTourneyId = id;
+    updateLeaderboards();
+    renderBrackets();
+}
+
+async function createNewTournament() {
+    const nameInput = document.getElementById("newTourneyName");
+    const name = nameInput.value.trim();
+    if (!name) return alert("Please type a deployment name!");
+
+    const newId = "arena_" + Date.now();
+    databaseState.tournaments[newId] = {
+        name: name,
+        players: [],
+        bracket: getDefaultBracketStructure()
+    };
+
+    nameInput.value = "";
+    currentTourneyId = newId;
+    await saveState();
+}
+
+function getActivePlayers() {
+    return databaseState.tournaments[currentTourneyId]?.players || [];
+}
+
+function getActiveBracket() {
+    return databaseState.tournaments[currentTourneyId]?.bracket || getDefaultBracketStructure();
+}
+
+/* ================= SORTING LOGIC ================= */
 function setSort(mode) {
     sortMode = mode;
     updateLeaderboards();
 }
 
 function getSortedPlayers() {
-    let copy = [...players];
+    let copy = [...getActivePlayers()];
     copy.sort((a, b) => {
         if (sortMode === "win") {
             return (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1));
@@ -431,7 +587,7 @@ function getSortedPlayers() {
     return copy;
 }
 
-/* ================= VIEW SWITCHER ================= */
+/* ================= VIEW CONTROL INTERFACES ================= */
 function showPublic() {
     document.getElementById("publicView").style.display = "block";
     document.getElementById("adminPanel").style.display = "none";
@@ -452,11 +608,11 @@ function login() {
         document.getElementById("adminPanel").style.display = "block";
         updateLeaderboards();
     } else {
-        alert("Wrong password");
+        alert("Authentication failed.");
     }
 }
 
-/* ================= DATA UTILITIES ================= */
+/* ================= MATH CALCULATION DISPLAY FILTERS ================= */
 function winRate(w, l) {
     if (w + l === 0) return "0.0%";
     return ((w / (w + l)) * 100).toFixed(1) + "%";
@@ -479,7 +635,7 @@ function getKdStyle(k, d) {
     return rawKd >= 1.0 ? "color: var(--success); font-weight: bold;" : "color: var(--danger); font-weight: bold;";
 }
 
-/* ================= DOM SYNC & ANIMATION HANDLING ================= */
+/* ================= DOM SYNCHRONIZER ================= */
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     
@@ -498,7 +654,7 @@ function updateLeaderboards() {
     });
 
     syncContainer("adminTable", sorted, (p, rank) => {
-        const realIndex = players.findIndex(orig => orig.name === p.name);
+        const realIndex = getActivePlayers().findIndex(orig => orig.name === p.name);
         const rClass = getRankClass(rank);
         return `
             <div class="${rClass}">#${rank + 1}</div>
@@ -518,7 +674,6 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Fixed math parameters layout calculations
     const rowHeight = 54;
     const rowGap = 8;
     
@@ -544,7 +699,6 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
             rowElement.innerHTML = htmlGenerator(player, index);
         }
         
-        // Positions row nodes accounting cleanly for layout spacing gaps
         rowElement.style.transform = `translateY(${index * (rowHeight + rowGap)}px)`;
     });
 
@@ -553,34 +707,166 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     });
 }
 
-/* ================= DATA HANDLERS ================= */
+/* ================= BRACKET RENDERING SYSTEMS ================= */
+function renderBrackets() {
+    const b = getActiveBracket();
+
+    const publicContainer = document.getElementById("publicBracket");
+    const adminContainer = document.getElementById("adminBracket");
+
+    const publicHTML = `
+        <div class="bracket-round">
+            <div class="bracket-round-title">Quarterfinals</div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.q1_t1}</span><span class="public-score">${b.q1_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.q1_t2}</span><span class="public-score">${b.q1_s2}</span></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.q2_t1}</span><span class="public-score">${b.q2_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.q2_t2}</span><span class="public-score">${b.q2_s2}</span></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.q3_t1}</span><span class="public-score">${b.q3_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.q3_t2}</span><span class="public-score">${b.q3_s2}</span></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.q4_t1}</span><span class="public-score">${b.q4_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.q4_t2}</span><span class="public-score">${b.q4_s2}</span></div>
+            </div>
+        </div>
+        <div class="bracket-round">
+            <div class="bracket-round-title">Semifinals</div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.s1_t1}</span><span class="public-score">${b.s1_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.s1_t2}</span><span class="public-score">${b.s1_s2}</span></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><span class="public-team-name">${b.s2_t1}</span><span class="public-score">${b.s2_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name">${b.s2_t2}</span><span class="public-score">${b.s2_s2}</span></div>
+            </div>
+        </div>
+        <div class="bracket-round">
+            <div class="bracket-round-title">Grand Finals</div>
+            <div class="matchup" style="border-color: var(--gold); box-shadow: 0 0 15px rgba(241,196,15,0.2);">
+                <div class="bracket-team"><span class="public-team-name" style="color: var(--gold);">${b.f_t1}</span><span class="public-score">${b.f_s1}</span></div>
+                <div class="bracket-team"><span class="public-team-name" style="color: var(--gold);">${b.f_t2}</span><span class="public-score">${b.f_s2}</span></div>
+            </div>
+        </div>
+    `;
+
+    const adminHTML = `
+        <div class="bracket-round">
+            <div class="bracket-round-title">Quarterfinals</div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq1_t1" class="team-name" value="${b.q1_t1}"><input id="bq1_s1" class="team-score" type="number" value="${b.q1_s1}"></div>
+                <div class="bracket-team"><input id="bq1_t2" class="team-name" value="${b.q1_t2}"><input id="bq1_s2" class="team-score" type="number" value="${b.q1_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq2_t1" class="team-name" value="${b.q2_t1}"><input id="bq2_s1" class="team-score" type="number" value="${b.q2_s1}"></div>
+                <div class="bracket-team"><input id="bq2_t2" class="team-name" value="${b.q2_t2}"><input id="bq2_s2" class="team-score" type="number" value="${b.q2_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq3_t1" class="team-name" value="${b.q3_t1}"><input id="bq3_s1" class="team-score" type="number" value="${b.q3_s1}"></div>
+                <div class="bracket-team"><input id="bq3_t2" class="team-name" value="${b.q3_t2}"><input id="bq3_s2" class="team-score" type="number" value="${b.q3_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq4_t1" class="team-name" value="${b.q4_t1}"><input id="bq4_s1" class="team-score" type="number" value="${b.q4_s1}"></div>
+                <div class="bracket-team"><input id="bq4_t2" class="team-name" value="${b.q4_t2}"><input id="bq4_s2" class="team-score" type="number" value="${b.q4_s2}"></div>
+            </div>
+        </div>
+        <div class="bracket-round">
+            <div class="bracket-round-title">Semifinals</div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bs1_t1" class="team-name" value="${b.s1_t1}"><input id="bs1_s1" class="team-score" type="number" value="${b.s1_s1}"></div>
+                <div class="bracket-team"><input id="bs1_t2" class="team-name" value="${b.s1_t2}"><input id="bs1_s2" class="team-score" type="number" value="${b.s1_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bs2_t1" class="team-name" value="${b.s2_t1}"><input id="bs2_s1" class="team-score" type="number" value="${b.s2_s1}"></div>
+                <div class="bracket-team"><input id="bs2_t2" class="team-name" value="${b.s2_t2}"><input id="bs2_s2" class="team-score" type="number" value="${b.s2_s2}"></div>
+            </div>
+        </div>
+        <div class="bracket-round">
+            <div class="bracket-round-title">Grand Finals</div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bf_t1" class="team-name" value="${b.f_t1}"><input id="bf_s1" class="team-score" type="number" value="${b.f_s1}"></div>
+                <div class="bracket-team"><input id="bf_t2" class="team-name" value="${b.f_t2}"><input id="bf_s2" class="team-score" type="number" value="${b.f_s2}"></div>
+            </div>
+        </div>
+    `;
+
+    publicContainer.innerHTML = publicHTML;
+    
+    // Safety check to avoid overwriting ongoing keyboard edits in admin panels
+    if (document.activeElement?.closest(`.bracket-container`) === null) {
+         adminContainer.innerHTML = adminHTML;
+    }
+}
+
+async function saveBracketEdits() {
+    if (!databaseState.tournaments[currentTourneyId]) return;
+    
+    const targetBracket = {
+        q1_t1: document.getElementById("bq1_t1").value, q1_t2: document.getElementById("bq1_t2").value,
+        q1_s1: document.getElementById("bq1_s1").value, q1_s2: document.getElementById("bq1_s2").value,
+        
+        q2_t1: document.getElementById("bq2_t1").value, q2_t2: document.getElementById("bq2_t2").value,
+        q2_s1: document.getElementById("bq2_s1").value, q2_s2: document.getElementById("bq2_s2").value,
+        
+        q3_t1: document.getElementById("bq3_t1").value, q3_t2: document.getElementById("bq3_t2").value,
+        q3_s1: document.getElementById("bq3_s1").value, q3_s2: document.getElementById("bq3_s2").value,
+        
+        q4_t1: document.getElementById("bq4_t1").value, q4_t2: document.getElementById("bq4_t2").value,
+        q4_s1: document.getElementById("bq4_s1").value, q4_s2: document.getElementById("bq4_s2").value,
+        
+        s1_t1: document.getElementById("bs1_t1").value, s1_t2: document.getElementById("bs1_t2").value,
+        s1_s1: document.getElementById("bs1_s1").value, s1_s2: document.getElementById("bs1_s2").value,
+        
+        s2_t1: document.getElementById("bs2_t1").value, s2_t2: document.getElementById("bs2_t2").value,
+        s2_s1: document.getElementById("bs2_s1").value, s2_s2: document.getElementById("bs2_s2").value,
+        
+        f_t1: document.getElementById("bf_t1").value,   f_t2: document.getElementById("bf_t2").value,
+        f_s1: document.getElementById("bf_s1").value,   f_s2: document.getElementById("bf_s2").value
+    };
+
+    databaseState.tournaments[currentTourneyId].bracket = targetBracket;
+    await saveState();
+    alert("Bracket nodes locked and saved!");
+}
+
+/* ================= DATA CHANGE MODIFIERS ================= */
 async function addPlayer() {
     let name = document.getElementById("name").value.trim();
     if (!name) return alert("Enter name");
-    if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Player already exists!");
+    
+    let activePlayers = getActivePlayers();
+    if (activePlayers.some(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Player already registered in this arena!");
 
-    players.push({ name, wins: 0, losses: 0, kills: 0, deaths: 0 });
+    activePlayers.push({ name, wins: 0, losses: 0, kills: 0, deaths: 0 });
     document.getElementById("name").value = "";
-    await save();
+    await saveState();
 }
 
 async function updatePlayer(i, field, value) {
-    if (!players[i]) return;
-    if (field === "name") players[i].name = value;
-    else players[i][field] = Number(value) || 0;
-    await save();
+    let activePlayers = getActivePlayers();
+    if (!activePlayers[i]) return;
+    
+    if (field === "name") activePlayers[i].name = value;
+    else activePlayers[i][field] = Number(value) || 0;
+    await saveState();
 }
 
 async function removePlayer(i) {
+    let activePlayers = getActivePlayers();
+    if (!activePlayers[i]) return;
     if (!confirm("Are you sure you want to delete this player?")) return;
-    players.splice(i, 1);
-    await save();
+    
+    activePlayers.splice(i, 1);
+    await saveState();
 }
 
-/* ================= RED MATRIX BACKGROUND ENGINE ================= */
+/* ================= CANVASES PARTICLE MATRIX ENGINE ================= */
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
-
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 
@@ -602,7 +888,6 @@ for (let i = 0; i < 50; i++) {
 
 function animateBackground() {
     ctx.clearRect(0, 0, width, height);
-    
     ctx.strokeStyle = 'rgba(231, 76, 60, 0.04)';
     ctx.lineWidth = 1;
     const gridSize = 50;
@@ -612,25 +897,18 @@ function animateBackground() {
     for (let y = 0; y < height; y += gridSize) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
     }
-
     ctx.fillStyle = 'rgba(231, 76, 60, 0.35)';
     particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-
+        p.x += p.vx; p.y += p.vy;
         if (p.x < 0 || p.x > width) p.vx *= -1;
         if (p.y < 0 || p.y > height) p.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
     });
-
     requestAnimationFrame(animateBackground);
 }
 animateBackground();
 
-/* ================= EXPOSE FUNCTIONS GLOBAL ================= */
+/* ================= EXPOSE GLOBALS ================= */
 window.showPublic = showPublic;
 window.openLogin = openLogin;
 window.login = login;
@@ -638,10 +916,11 @@ window.setSort = setSort;
 window.addPlayer = addPlayer;
 window.updatePlayer = updatePlayer;
 window.removePlayer = removePlayer;
+window.switchTournament = switchTournament;
+window.createNewTournament = createNewTournament;
+window.saveBracketEdits = saveBracketEdits;
 
-/* Initialization sequence */
 showPublic();
 </script>
-
 </body>
 </html>
