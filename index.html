@@ -984,46 +984,49 @@ function renderTierListLayout(sortedPlayers) {
         const rowBox = document.getElementById(`tier-${tierId}-content`);
         if (!rowBox) return;
         
+        // Add dragover and drop event handlers here
+        rowBox.setAttribute("ondragover", "allowDrop(event)");
+        rowBox.setAttribute("ondrop", `drop(event, '${tierId}')`);
+
         if (tiers[tierId].length === 0) {
             rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
         } else {
-rowBox.innerHTML = tiers[tierId].map(name => `
-    <div class="tier-badge badge-${tierId.toLowerCase()}" 
-         draggable="true" 
-         ondragstart="drag(event)" 
-         id="player_${name.replace(/\s+/g, '')}">
-         ${name}
-    </div>
-`).join('');
+            rowBox.innerHTML = tiers[tierId].map(name => `
+                <div class="tier-badge badge-${tierId.toLowerCase()}" 
+                     draggable="true" 
+                     ondragstart="drag(event)" 
+                     id="player_${name.replace(/\s+/g, '')}">
+                     ${name}
+                </div>
+            `).join('');
         }
     });
 }
 
-// Allow the drop
 function allowDrop(ev) {
     ev.preventDefault();
 }
 
-// Start dragging
 function drag(ev) {
+    // Store the player name in the data transfer
     ev.dataTransfer.setData("text", ev.target.innerText);
 }
 
-// Handle the drop
-async function drop(ev) {
+async function drop(ev, newTier) {
     ev.preventDefault();
     const playerName = ev.dataTransfer.getData("text");
-    // Find which tier row we dropped into by checking the parent ID
-    const newTier = ev.target.closest('.tier-row').querySelector('.tier-label').innerText;
     
-    // Update the player object in the state
-    const player = getActivePlayers().find(p => p.name === playerName);
-    if (player) {
-        player.tier = newTier;
-        await saveState(); // This triggers the snapshot and re-renders
+    // Find the player index in the state
+    const players = getActivePlayers();
+    const playerIndex = players.findIndex(p => p.name === playerName);
+    
+    if (playerIndex !== -1) {
+        // Update the tier
+        await updatePlayer(playerIndex, 'tier', newTier);
+        // updatePlayer calls saveState() and updateLeaderboards() automatically
     }
-}    
-
+}
+    
 function syncContainer(containerId, sortedData, htmlGenerator) {
     const container = document.getElementById(containerId);
     if (!container) return;
