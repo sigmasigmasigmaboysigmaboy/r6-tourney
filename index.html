@@ -1279,13 +1279,17 @@ function pongLoop() {
 
 window.switchPanel = switchPanel;
 window.login = login;
+window.updateLeaderboards = updateLeaderboards;
+window.renderBrackets = renderBrackets;
+window.startPongEasterEgg = startPongEasterEgg;
+window.showTiers = showTiers;
 window.addPlayer = addPlayer; window.updatePlayer = updatePlayer; window.removePlayer = removePlayer;
 window.switchTournament = switchTournament; window.createNewTournament = createNewTournament;
 window.renameActiveTournament = renameActiveTournament; window.changeActiveTeamsCount = changeActiveTeamsCount;
 window.deleteActiveTournament = deleteActiveTournament; window.saveBracketEdits = saveBracketEdits;
 window.closePongGame = closePongGame; window.updateSliderSpeed = updateSliderSpeed;
 
-showLeaderboard();
+switchPanel('leaderboard');
 </script>
 </body>
 </html>
