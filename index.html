@@ -978,7 +978,7 @@ let pongAnimationId = null;
 
 const playerPaddle = { x: 15, y: 175, w: 12, h: 90, score: 0 };
 const aiPaddle = { x: 773, y: 175, w: 12, h: 90, score: 0 };
-const pongBall = { x: 400, y: 225, radius: 8, speed: 0.0001, vx: 5, vy: 3 };
+const pongBall = { x: 400, y: 225, radius: 8, speed: 2, vx: 5, vy: 3 };
 
 function startPongEasterEgg() {
     document.getElementById("pongWrapper").style.display = "flex";
@@ -1011,7 +1011,7 @@ function trackMousePaddleMove(e) {
 function resetPongBall() {
     pongBall.x = pongCanvas.width / 2;
     pongBall.y = pongCanvas.height / 2;
-    pongBall.speed = 5;
+    pongBall.speed = 2;
     // Alternate direction serve logic
     pongBall.vx = (Math.random() > 0.5 ? 1 : -1) * pongBall.speed;
     pongBall.vy = (Math.random() * 2 - 1) * 4;
