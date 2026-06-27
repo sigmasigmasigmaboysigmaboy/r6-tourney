@@ -192,6 +192,7 @@
         gap: 10px;
         flex-wrap: wrap;
         margin-top: 10px;
+        align-items: center;
     }
 
     /* Column Sizing Rules */
@@ -262,18 +263,20 @@
 
     /* ================= BRACKET SYSTEM UI ================= */
     .bracket-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 30px;
+        display: flex;
+        gap: 40px;
         margin-top: 30px;
         padding: 10px;
-        min-width: 900px;
+        min-width: 600px;
+        justify-content: flex-start;
     }
 
     .bracket-round {
         display: flex;
         flex-direction: column;
         justify-content: space-around;
+        flex: 1;
+        min-width: 220px;
     }
 
     .bracket-round-title {
@@ -411,10 +414,26 @@
         <h2>Admin Tournament Management</h2>
         
         <div class="management-block">
-            <span style="font-weight: bold; color: var(--accent);">Create New Tournament Arena</span>
+            <span style="font-weight: bold; color: var(--accent); text-transform: uppercase; font-size: 0.85rem;">Create New Tournament Arena</span>
             <div class="inline-form">
                 <input id="newTourneyName" placeholder="e.g., Summer Cup 2026">
+                <select id="newTourneySize">
+                    <option value="8">8 Teams (Quarterfinals)</option>
+                    <option value="4">4 Teams (Semifinals)</option>
+                </select>
                 <button onclick="createNewTournament()">Generate Tournament</button>
+            </div>
+        </div>
+
+        <div class="management-block" style="border-color: rgba(231, 76, 60, 0.4);">
+            <span style="font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85rem;">Active Arena Configurations</span>
+            <div class="inline-form">
+                <label style="color: var(--text-muted); font-size: 0.9rem;">Adjust Bracket Size:</label>
+                <select id="activeBracketSizeSelector" onchange="changeActiveBracketSize(this.value)">
+                    <option value="8">8 Teams</option>
+                    <option value="4">4 Teams</option>
+                </select>
+                <button onclick="deleteActiveTournament()" class="danger" style="margin-left: auto;">Delete This Entire Tournament</button>
             </div>
         </div>
 
@@ -467,7 +486,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Complete structure document reference point
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
 /* ================= APP CORE SYSTEM STATE ================= */
@@ -475,27 +493,32 @@ const ADMIN_PASSWORD = "admin123";
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
 
-// Root dynamic database structure storage tree
 let databaseState = {
     tournaments: {
         "default_arena": {
             name: "Alpha Tournament",
+            size: "8",
             players: [],
-            bracket: getDefaultBracketStructure()
+            bracket: getDefaultBracketStructure("8")
         }
     }
 };
 
-function getDefaultBracketStructure() {
-    return {
-        q1_t1: "Team Alpha", q1_t2: "Team Omega", q1_s1: "0", q1_s2: "0",
-        q2_t1: "Team Beta",  q2_t2: "Team Gamma", q2_s1: "0", q2_s2: "0",
-        q3_t1: "Team Delta",  q3_t2: "Team Zeta",  q3_s1: "0", q3_s2: "0",
-        q4_t1: "Team Epsilon",q4_t2: "Team Theta", q4_s1: "0", q4_s2: "0",
-        s1_t1: "TBD", s1_t2: "TBD", s1_s1: "0", s1_s2: "0",
-        s2_t1: "TBD", s2_t2: "TBD", s2_s1: "0", s2_s2: "0",
-        f_t1: "TBD",  f_t2: "TBD",  f_s1: "0",  f_s2: "0"
+function getDefaultBracketStructure(size = "8") {
+    const base = {
+        s1_t1: "Team Alpha", s1_t2: "Team Omega", s1_s1: "0", s1_s2: "0",
+        s2_t1: "Team Beta",  s2_t2: "Team Gamma", s2_s1: "0", s2_s2: "0",
+        f_t1: "TBD",         f_t2: "TBD",         f_s1: "0",  f_s2: "0"
     };
+    if (size === "8") {
+        base.q1_t1 = "Team Q1"; base.q1_t2 = "Team Q2"; base.q1_s1 = "0"; base.q1_s2 = "0";
+        base.q2_t1 = "Team Q3"; base.q2_t2 = "Team Q4"; base.q2_s1 = "0"; base.q2_s2 = "0";
+        base.q3_t1 = "Team Q5"; base.q3_t2 = "Team Q6"; base.q3_s1 = "0"; base.q3_s2 = "0";
+        base.q4_t1 = "Team Q7"; base.q4_t2 = "Team Q8"; base.q4_s1 = "0"; base.q4_s2 = "0";
+        base.s1_t1 = "TBD"; base.s1_t2 = "TBD";
+        base.s2_t1 = "TBD"; base.s2_t2 = "TBD";
+    }
+    return base;
 }
 
 /* ================= REALTIME SYNC ENGINE ================= */
@@ -503,7 +526,6 @@ onSnapshot(GLOBAL_DOC_REF, (snap) => {
     if (snap.exists()) {
         databaseState = snap.data();
     } else {
-        // Run first-time setup safely
         saveState();
     }
     
@@ -533,8 +555,14 @@ function populateTournamentSelectors() {
         selector.value = previousSelection;
         currentTourneyId = previousSelection;
     } else {
-        currentTourneyId = Object.keys(databaseState.tournaments)[0];
+        currentTourneyId = Object.keys(databaseState.tournaments)[0] || "";
         selector.value = currentTourneyId;
+    }
+
+    // Update size dropdown in management configuration block
+    const sizeConfig = document.getElementById("activeBracketSizeSelector");
+    if (sizeConfig && databaseState.tournaments[currentTourneyId]) {
+        sizeConfig.value = databaseState.tournaments[currentTourneyId].size || "8";
     }
 }
 
@@ -546,14 +574,16 @@ function switchTournament(id) {
 
 async function createNewTournament() {
     const nameInput = document.getElementById("newTourneyName");
+    const sizeSelect = document.getElementById("newTourneySize");
     const name = nameInput.value.trim();
     if (!name) return alert("Please type a deployment name!");
 
     const newId = "arena_" + Date.now();
     databaseState.tournaments[newId] = {
         name: name,
+        size: sizeSelect.value,
         players: [],
-        bracket: getDefaultBracketStructure()
+        bracket: getDefaultBracketStructure(sizeSelect.value)
     };
 
     nameInput.value = "";
@@ -561,12 +591,52 @@ async function createNewTournament() {
     await saveState();
 }
 
+async function changeActiveBracketSize(newSize) {
+    if (!databaseState.tournaments[currentTourneyId]) return;
+    if (!confirm(`Warning: Adjusting team capacity will clear out your current layout configurations. Proceed?`)) {
+        document.getElementById("activeBracketSizeSelector").value = databaseState.tournaments[currentTourneyId].size;
+        return;
+    }
+
+    databaseState.tournaments[currentTourneyId].size = newSize;
+    databaseState.tournaments[currentTourneyId].bracket = getDefaultBracketStructure(newSize);
+    await saveState();
+}
+
+async function deleteActiveTournament() {
+    if (!databaseState.tournaments[currentTourneyId]) return;
+    if (!confirm(`CRITICAL CRASH DANGER:\nAre you entirely sure you want to delete "${databaseState.tournaments[currentTourneyId].name}"? All data inside will be wiped.`)) return;
+
+    delete databaseState.tournaments[currentTourneyId];
+    
+    const remainingIds = Object.keys(databaseState.tournaments);
+    if (remainingIds.length === 0) {
+        // Safe fall-back system generation reset if completely emptied out
+        databaseState.tournaments["default_arena"] = {
+            name: "Alpha Tournament",
+            size: "8",
+            players: [],
+            bracket: getDefaultBracketStructure("8")
+        };
+        currentTourneyId = "default_arena";
+    } else {
+        currentTourneyId = remainingIds[0];
+    }
+
+    await saveState();
+    alert("Tournament arena wiped successfully.");
+}
+
 function getActivePlayers() {
     return databaseState.tournaments[currentTourneyId]?.players || [];
 }
 
 function getActiveBracket() {
-    return databaseState.tournaments[currentTourneyId]?.bracket || getDefaultBracketStructure();
+    return databaseState.tournaments[currentTourneyId]?.bracket || getDefaultBracketStructure("8");
+}
+
+function getActiveSize() {
+    return databaseState.tournaments[currentTourneyId]?.size || "8";
 }
 
 /* ================= SORTING LOGIC ================= */
@@ -612,7 +682,7 @@ function login() {
     }
 }
 
-/* ================= MATH CALCULATION DISPLAY FILTERS ================= */
+/* ================= MATH CALCULATION FILTERS ================= */
 function winRate(w, l) {
     if (w + l === 0) return "0.0%";
     return ((w / (w + l)) * 100).toFixed(1) + "%";
@@ -707,14 +777,15 @@ function syncContainer(containerId, sortedData, htmlGenerator) {
     });
 }
 
-/* ================= BRACKET RENDERING SYSTEMS ================= */
+/* ================= DYNAMIC BRACKET SYSTEM GENERATION ================= */
 function renderBrackets() {
     const b = getActiveBracket();
+    const size = getActiveSize();
 
     const publicContainer = document.getElementById("publicBracket");
     const adminContainer = document.getElementById("adminBracket");
 
-    const publicHTML = `
+    const renderQuarterfinalsPublic = () => `
         <div class="bracket-round">
             <div class="bracket-round-title">Quarterfinals</div>
             <div class="matchup">
@@ -733,7 +804,31 @@ function renderBrackets() {
                 <div class="bracket-team"><span class="public-team-name">${b.q4_t1}</span><span class="public-score">${b.q4_s1}</span></div>
                 <div class="bracket-team"><span class="public-team-name">${b.q4_t2}</span><span class="public-score">${b.q4_s2}</span></div>
             </div>
-        </div>
+        </div>`;
+
+    const renderQuarterfinalsAdmin = () => `
+        <div class="bracket-round">
+            <div class="bracket-round-title">Quarterfinals</div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq1_t1" class="team-name" value="${b.q1_t1}"><input id="bq1_s1" class="team-score" type="number" value="${b.q1_s1}"></div>
+                <div class="bracket-team"><input id="bq1_t2" class="team-name" value="${b.q1_t2}"><input id="bq1_s2" class="team-score" type="number" value="${b.q1_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq2_t1" class="team-name" value="${b.q2_t1}"><input id="bq2_s1" class="team-score" type="number" value="${b.q2_s1}"></div>
+                <div class="bracket-team"><input id="bq2_t2" class="team-name" value="${b.q2_t2}"><input id="bq2_s2" class="team-score" type="number" value="${b.q2_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq3_t1" class="team-name" value="${b.q3_t1}"><input id="bq3_s1" class="team-score" type="number" value="${b.q3_s1}"></div>
+                <div class="bracket-team"><input id="bq3_t2" class="team-name" value="${b.q3_t2}"><input id="bq3_s2" class="team-score" type="number" value="${b.q3_s2}"></div>
+            </div>
+            <div class="matchup">
+                <div class="bracket-team"><input id="bq4_t1" class="team-name" value="${b.q4_t1}"><input id="bq4_s1" class="team-score" type="number" value="${b.q4_s1}"></div>
+                <div class="bracket-team"><input id="bq4_t2" class="team-name" value="${b.q4_t2}"><input id="bq4_s2" class="team-score" type="number" value="${b.q4_s2}"></div>
+            </div>
+        </div>`;
+
+    const publicHTML = `
+        ${size === "8" ? renderQuarterfinalsPublic() : ""}
         <div class="bracket-round">
             <div class="bracket-round-title">Semifinals</div>
             <div class="matchup">
@@ -755,25 +850,7 @@ function renderBrackets() {
     `;
 
     const adminHTML = `
-        <div class="bracket-round">
-            <div class="bracket-round-title">Quarterfinals</div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq1_t1" class="team-name" value="${b.q1_t1}"><input id="bq1_s1" class="team-score" type="number" value="${b.q1_s1}"></div>
-                <div class="bracket-team"><input id="bq1_t2" class="team-name" value="${b.q1_t2}"><input id="bq1_s2" class="team-score" type="number" value="${b.q1_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq2_t1" class="team-name" value="${b.q2_t1}"><input id="bq2_s1" class="team-score" type="number" value="${b.q2_s1}"></div>
-                <div class="bracket-team"><input id="bq2_t2" class="team-name" value="${b.q2_t2}"><input id="bq2_s2" class="team-score" type="number" value="${b.q2_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq3_t1" class="team-name" value="${b.q3_t1}"><input id="bq3_s1" class="team-score" type="number" value="${b.q3_s1}"></div>
-                <div class="bracket-team"><input id="bq3_t2" class="team-name" value="${b.q3_t2}"><input id="bq3_s2" class="team-score" type="number" value="${b.q3_s2}"></div>
-            </div>
-            <div class="matchup">
-                <div class="bracket-team"><input id="bq4_t1" class="team-name" value="${b.q4_t1}"><input id="bq4_s1" class="team-score" type="number" value="${b.q4_s1}"></div>
-                <div class="bracket-team"><input id="bq4_t2" class="team-name" value="${b.q4_t2}"><input id="bq4_s2" class="team-score" type="number" value="${b.q4_s2}"></div>
-            </div>
-        </div>
+        ${size === "8" ? renderQuarterfinalsAdmin() : ""}
         <div class="bracket-round">
             <div class="bracket-round-title">Semifinals</div>
             <div class="matchup">
@@ -795,8 +872,6 @@ function renderBrackets() {
     `;
 
     publicContainer.innerHTML = publicHTML;
-    
-    // Safety check to avoid overwriting ongoing keyboard edits in admin panels
     if (document.activeElement?.closest(`.bracket-container`) === null) {
          adminContainer.innerHTML = adminHTML;
     }
@@ -804,20 +879,9 @@ function renderBrackets() {
 
 async function saveBracketEdits() {
     if (!databaseState.tournaments[currentTourneyId]) return;
+    const size = getActiveSize();
     
     const targetBracket = {
-        q1_t1: document.getElementById("bq1_t1").value, q1_t2: document.getElementById("bq1_t2").value,
-        q1_s1: document.getElementById("bq1_s1").value, q1_s2: document.getElementById("bq1_s2").value,
-        
-        q2_t1: document.getElementById("bq2_t1").value, q2_t2: document.getElementById("bq2_t2").value,
-        q2_s1: document.getElementById("bq2_s1").value, q2_s2: document.getElementById("bq2_s2").value,
-        
-        q3_t1: document.getElementById("bq3_t1").value, q3_t2: document.getElementById("bq3_t2").value,
-        q3_s1: document.getElementById("bq3_s1").value, q3_s2: document.getElementById("bq3_s2").value,
-        
-        q4_t1: document.getElementById("bq4_t1").value, q4_t2: document.getElementById("bq4_t2").value,
-        q4_s1: document.getElementById("bq4_s1").value, q4_s2: document.getElementById("bq4_s2").value,
-        
         s1_t1: document.getElementById("bs1_t1").value, s1_t2: document.getElementById("bs1_t2").value,
         s1_s1: document.getElementById("bs1_s1").value, s1_s2: document.getElementById("bs1_s2").value,
         
@@ -828,12 +892,23 @@ async function saveBracketEdits() {
         f_s1: document.getElementById("bf_s1").value,   f_s2: document.getElementById("bf_s2").value
     };
 
+    if (size === "8") {
+        targetBracket.q1_t1 = document.getElementById("bq1_t1").value; targetBracket.q1_t2 = document.getElementById("bq1_t2").value;
+        targetBracket.q1_s1 = document.getElementById("bq1_s1").value; targetBracket.q1_s2 = document.getElementById("bq1_s2").value;
+        targetBracket.q2_t1 = document.getElementById("bq2_t1").value; targetBracket.q2_t2 = document.getElementById("bq2_t2").value;
+        targetBracket.q2_s1 = document.getElementById("bq2_s1").value; targetBracket.q2_s2 = document.getElementById("bq2_s2").value;
+        targetBracket.q3_t1 = document.getElementById("bq3_t1").value; targetBracket.q3_t2 = document.getElementById("bq3_t2").value;
+        targetBracket.q3_s1 = document.getElementById("bq3_s1").value; targetBracket.q3_s2 = document.getElementById("bq3_s2").value;
+        targetBracket.q4_t1 = document.getElementById("bq4_t1").value; targetBracket.q4_t2 = document.getElementById("bq4_t2").value;
+        targetBracket.q4_s1 = document.getElementById("bq4_s1").value; targetBracket.q4_s2 = document.getElementById("bq4_s2").value;
+    }
+
     databaseState.tournaments[currentTourneyId].bracket = targetBracket;
     await saveState();
-    alert("Bracket nodes locked and saved!");
+    alert("Bracket architecture updated!");
 }
 
-/* ================= DATA CHANGE MODIFIERS ================= */
+/* ================= DATA HANDLERS ================= */
 async function addPlayer() {
     let name = document.getElementById("name").value.trim();
     if (!name) return alert("Enter name");
@@ -849,7 +924,6 @@ async function addPlayer() {
 async function updatePlayer(i, field, value) {
     let activePlayers = getActivePlayers();
     if (!activePlayers[i]) return;
-    
     if (field === "name") activePlayers[i].name = value;
     else activePlayers[i][field] = Number(value) || 0;
     await saveState();
@@ -859,12 +933,11 @@ async function removePlayer(i) {
     let activePlayers = getActivePlayers();
     if (!activePlayers[i]) return;
     if (!confirm("Are you sure you want to delete this player?")) return;
-    
     activePlayers.splice(i, 1);
     await saveState();
 }
 
-/* ================= CANVASES PARTICLE MATRIX ENGINE ================= */
+/* ================= BACKGROUND CANVASES MATRIX ENGINE ================= */
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
@@ -919,6 +992,8 @@ window.removePlayer = removePlayer;
 window.switchTournament = switchTournament;
 window.createNewTournament = createNewTournament;
 window.saveBracketEdits = saveBracketEdits;
+window.changeActiveBracketSize = changeActiveBracketSize;
+window.deleteActiveTournament = deleteActiveTournament;
 
 showPublic();
 </script>
