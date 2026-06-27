@@ -988,11 +988,41 @@ function renderTierListLayout(sortedPlayers) {
             rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
         } else {
             rowBox.innerHTML = tiers[tierId].map(name => `
-                <div class="tier-badge badge-${tierId.toLowerCase()}">${name}</div>
+                <<div class="tier-badge badge-${tierId.toLowerCase()}" 
+         draggable="true" 
+         ondragstart="drag(event)" 
+         id="player_${name.replace(/\s+/g, '')}">
+         ${name}
+    </div>
             `).join('');
         }
     });
 }
+
+// Allow the drop
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+// Start dragging
+function drag(ev) {
+    ev.dataTransfer.setData("text", ev.target.innerText);
+}
+
+// Handle the drop
+async function drop(ev) {
+    ev.preventDefault();
+    const playerName = ev.dataTransfer.getData("text");
+    // Find which tier row we dropped into by checking the parent ID
+    const newTier = ev.target.closest('.tier-row').querySelector('.tier-label').innerText;
+    
+    // Update the player object in the state
+    const player = getActivePlayers().find(p => p.name === playerName);
+    if (player) {
+        player.tier = newTier;
+        await saveState(); // This triggers the snapshot and re-renders
+    }
+}    
 
 function syncContainer(containerId, sortedData, htmlGenerator) {
     const container = document.getElementById(containerId);
@@ -1300,8 +1330,9 @@ window.saveBracketEdits = saveBracketEdits;
 window.closePongGame = closePongGame;
 window.updateSliderSpeed = updateSliderSpeed;
 window.startPongEasterEgg = startPongEasterEgg;
-
-
+window.allowDrop = allowDrop;
+window.drag = drag;
+window.drop = drop;    
 
 switchPanel('leaderboard');
 </script>
