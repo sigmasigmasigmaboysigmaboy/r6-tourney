@@ -978,7 +978,7 @@ let pongAnimationId = null;
 
 const playerPaddle = { x: 15, y: 175, w: 12, h: 90, score: 0 };
 const aiPaddle = { x: 773, y: 175, w: 12, h: 90, score: 0 };
-const pongBall = { x: 400, y: 225, radius: 8, speed: 2, vx: 5, vy: 3 };
+const pongBall = { x: 400, y: 225, radius: 8, speed: 0.1, vx: 5, vy: 3 };
 
 function startPongEasterEgg() {
     document.getElementById("pongWrapper").style.display = "flex";
