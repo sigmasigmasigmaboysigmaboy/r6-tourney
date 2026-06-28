@@ -975,39 +975,40 @@ function updateLeaderboards() {
 function renderTierListLayout(sortedPlayers) {
     const tiers = { S: [], A: [], B: [], C: [], D: [], F: [] };
     
-    // Group players and ensure they have a default tierPosition
+    // Group players by tier
     sortedPlayers.forEach(p => {
         if (p.tier && tiers[p.tier] !== undefined) {
-            // Assign a default position if none exists
-            if (p.tierPosition === undefined) p.tierPosition = 0; 
             tiers[p.tier].push(p);
         }
     });
 
-Object.keys(tiers).forEach(tierId => {
+    Object.keys(tiers).forEach(tierId => {
         const rowBox = document.getElementById(`tier-${tierId}-content`);
         if (!rowBox) return;
 
-        // Render the HTML
-        rowBox.innerHTML = tiers[tierId].map(p => `
-            <div class="tier-badge badge-${tierId.toLowerCase()}" data-name="${p.name}">
-                 ${p.name}
-            </div>
-        `).join('');
+        // Sort by stored index if it exists, otherwise fallback to index in array
+        tiers[tierId].sort((a, b) => (a.tierPosition || 0) - (b.tierPosition || 0));
+
+        if (tiers[tierId].length === 0) {
+            rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
+        } else {
+            rowBox.innerHTML = tiers[tierId].map(p => `
+                <div class="tier-badge badge-${tierId.toLowerCase()}" data-name="${p.name}">
+                     ${p.name}
+                </div>
+            `).join('');
+        }
 
         // Initialize Sortable for this row
         new Sortable(rowBox, {
-            group: 'shared', // This allows moving players between tiers
+            group: 'shared',
             animation: 150,
             onEnd: async function (evt) {
-                const playerName = evt.item.dataset.name;
-                const newTier = evt.to.id.split('-')[1]; // Extracts S, A, B, etc.
+                const newTier = evt.to.id.split('-')[1]; // Extracts S, A, B...
+                // Get the new order of all names in this tier
+                const newNamesOrder = Array.from(evt.to.children).map(c => c.dataset.name);
                 
-                // Get the new order of names in the tier
-                const newOrder = Array.from(evt.to.children).map(child => child.dataset.name);
-                
-                // Save this order and the tier change to your database
-                await updatePlayerTierAndOrder(playerName, newTier, newOrder);
+                await updateTierOrderAndPosition(newTier, newNamesOrder);
             }
         });
     });
@@ -1034,24 +1035,36 @@ async function drop(ev, newTier) {
     }
 }
 
-    async function updatePlayerTierAndOrder(name, newTier, orderArray) {
+async function updateTierOrderAndPosition(tier, orderedNames) {
     const players = getActivePlayers();
-    const playerIndex = players.findIndex(p => p.name === name);
     
-    if (playerIndex !== -1) {
-        // Update the player's tier
-        players[playerIndex].tier = newTier;
-        
-        // Optional: Store the orderArray in your databaseState if you want 
-        // to persist the specific horizontal order of that tier
-        databaseState.tournaments[currentTourneyId].tierOrders = {
-            ...databaseState.tournaments[currentTourneyId].tierOrders,
-            [newTier]: orderArray
-        };
-        
-        await saveState();
-        updateLeaderboards();
-    }
+    // Update every player affected by the move
+    orderedNames.forEach((name, index) => {
+        const p = players.find(player => player.name === name);
+        if (p) {
+            p.tier = tier; // Update tier if moved to a new one
+            p.tierPosition = index; // Save horizontal position
+        }
+    });
+    
+    // Push to Firebase
+    await saveState(); 
+}
+
+    async function saveNewTierOrder(tier, orderedNames) {
+    const players = getActivePlayers();
+    
+    // Update each player's position in the state based on the new array order
+    orderedNames.forEach((name, index) => {
+        const p = players.find(player => player.name === name);
+        if (p) {
+            p.tier = tier; // Ensure tier is correct
+            p.tierPosition = index; // Save the new horizontal index
+        }
+    });
+    
+    // Save the entire state back to Firebase
+    await saveState(); 
 }
     
 function syncContainer(containerId, sortedData, htmlGenerator) {
