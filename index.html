@@ -631,6 +631,7 @@
     </div>
 </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
@@ -974,32 +975,41 @@ function updateLeaderboards() {
 function renderTierListLayout(sortedPlayers) {
     const tiers = { S: [], A: [], B: [], C: [], D: [], F: [] };
     
+    // Group players and ensure they have a default tierPosition
     sortedPlayers.forEach(p => {
         if (p.tier && tiers[p.tier] !== undefined) {
-            tiers[p.tier].push(p.name);
+            // Assign a default position if none exists
+            if (p.tierPosition === undefined) p.tierPosition = 0; 
+            tiers[p.tier].push(p);
         }
     });
 
-    Object.keys(tiers).forEach(tierId => {
+Object.keys(tiers).forEach(tierId => {
         const rowBox = document.getElementById(`tier-${tierId}-content`);
         if (!rowBox) return;
-        
-        // Ensure the drop area is enabled
-        rowBox.setAttribute("ondragover", "allowDrop(event)");
-        rowBox.setAttribute("ondrop", `drop(event, '${tierId}')`);
 
-        if (tiers[tierId].length === 0) {
-            rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
-        } else {
-            rowBox.innerHTML = tiers[tierId].map(name => `
-                <div class="tier-badge badge-${tierId.toLowerCase()}" 
-                     draggable="true" 
-                     ondragstart="drag(event)" 
-                     id="player_${name.replace(/\s+/g, '')}">
-                     ${name}
-                </div>
-            `).join('');
-        }
+        // Render the HTML
+        rowBox.innerHTML = tiers[tierId].map(p => `
+            <div class="tier-badge badge-${tierId.toLowerCase()}" data-name="${p.name}">
+                 ${p.name}
+            </div>
+        `).join('');
+
+        // Initialize Sortable for this row
+        new Sortable(rowBox, {
+            group: 'shared', // This allows moving players between tiers
+            animation: 150,
+            onEnd: async function (evt) {
+                const playerName = evt.item.dataset.name;
+                const newTier = evt.to.id.split('-')[1]; // Extracts S, A, B, etc.
+                
+                // Get the new order of names in the tier
+                const newOrder = Array.from(evt.to.children).map(child => child.dataset.name);
+                
+                // Save this order and the tier change to your database
+                await updatePlayerTierAndOrder(playerName, newTier, newOrder);
+            }
+        });
     });
 }
 
