@@ -1033,6 +1033,26 @@ async function drop(ev, newTier) {
         await updatePlayer(playerIndex, 'tier', newTier);
     }
 }
+
+    async function updatePlayerTierAndOrder(name, newTier, orderArray) {
+    const players = getActivePlayers();
+    const playerIndex = players.findIndex(p => p.name === name);
+    
+    if (playerIndex !== -1) {
+        // Update the player's tier
+        players[playerIndex].tier = newTier;
+        
+        // Optional: Store the orderArray in your databaseState if you want 
+        // to persist the specific horizontal order of that tier
+        databaseState.tournaments[currentTourneyId].tierOrders = {
+            ...databaseState.tournaments[currentTourneyId].tierOrders,
+            [newTier]: orderArray
+        };
+        
+        await saveState();
+        updateLeaderboards();
+    }
+}
     
 function syncContainer(containerId, sortedData, htmlGenerator) {
     const container = document.getElementById(containerId);
