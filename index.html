@@ -984,7 +984,7 @@ function renderTierListLayout(sortedPlayers) {
         const rowBox = document.getElementById(`tier-${tierId}-content`);
         if (!rowBox) return;
         
-        // Add dragover and drop event handlers here
+        // Ensure the drop area is enabled
         rowBox.setAttribute("ondragover", "allowDrop(event)");
         rowBox.setAttribute("ondrop", `drop(event, '${tierId}')`);
 
@@ -1004,11 +1004,10 @@ function renderTierListLayout(sortedPlayers) {
 }
 
 function allowDrop(ev) {
-    ev.preventDefault();
+    ev.preventDefault(); // Necessary to allow a drop
 }
 
 function drag(ev) {
-    // Store the player name in the data transfer
     ev.dataTransfer.setData("text", ev.target.innerText);
 }
 
@@ -1016,14 +1015,12 @@ async function drop(ev, newTier) {
     ev.preventDefault();
     const playerName = ev.dataTransfer.getData("text");
     
-    // Find the player index in the state
+    // Find the player index in the state and update the tier
     const players = getActivePlayers();
     const playerIndex = players.findIndex(p => p.name === playerName);
     
     if (playerIndex !== -1) {
-        // Update the tier
         await updatePlayer(playerIndex, 'tier', newTier);
-        // updatePlayer calls saveState() and updateLeaderboards() automatically
     }
 }
     
