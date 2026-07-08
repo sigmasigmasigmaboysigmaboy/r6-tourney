@@ -650,7 +650,7 @@ const db = getFirestore(app);
 
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "urfat";
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
 
