@@ -514,10 +514,10 @@
         </div>
 
 <div class="nav-buttons">
-    <button id="btnNavLeaderboard" class="active-nav">Leaderboard</button>
-    <button id="btnNavBracket">Bracket</button>
-    <button id="btnNavTiers">Tier List</button>
-    <button id="btnNavAdmin">Admin Panel</button>
+    <button id="btnNavLeaderboard" class="active-nav" onclick="switchPanel('leaderboard')">Leaderboard</button>
+    <button id="btnNavBracket" onclick="switchPanel('bracket')">Bracket</button>
+    <button id="btnNavTiers" onclick="switchPanel('tiers')">Tier List</button>
+    <button id="btnNavAdmin" onclick="switchPanel('login')">Admin Panel</button>
 </div>
         
         <div id="sortContextArea" class="sort-buttons">
@@ -884,24 +884,20 @@ function getSortedPlayers() {
 }
 
 function switchPanel(panelName) {
-    // 1. Hide all panels
     document.getElementById("leaderboardView").style.display = "none";
     document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
     document.getElementById("adminPanel").style.display = "none";
     document.getElementById("loginBox").style.display = "none";
     
-    // 2. Manage Sort Button Visibility
     document.getElementById("sortContextArea").style.display = (panelName === 'leaderboard') ? "flex" : "none";
 
-    // 3. Show requested panel
     if(panelName === 'leaderboard') document.getElementById("leaderboardView").style.display = "block";
     if(panelName === 'bracket') document.getElementById("bracketView").style.display = "block";
     if(panelName === 'tiers') document.getElementById("tierListView").style.display = "block";
     if(panelName === 'admin') document.getElementById("adminPanel").style.display = "block";
     if(panelName === 'login') document.getElementById("loginBox").style.display = "block";
 
-    // 4. Update Button Classes
     document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('active-nav'));
     const btnMap = { 'leaderboard': 'btnNavLeaderboard', 'bracket': 'btnNavBracket', 'tiers': 'btnNavTiers', 'admin': 'btnNavAdmin' };
     if(btnMap[panelName]) document.getElementById(btnMap[panelName]).classList.add('active-nav');
@@ -931,10 +927,27 @@ function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 
 function getKdStyle(k, d) { return (d===0?k:k/d) >= 1.0 ? "color:var(--success);font-weight:bold;" : "color:var(--danger);font-weight:bold;"; }
 
 /* ================= RENDERING HANDLERS ================= */
+function syncContainer(containerId, dataArray, renderFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    let totalHeight = 0;
+    const rowHeight = 54;
+    const rowGap = 8;
+    dataArray.forEach((item, i) => {
+        const row = document.createElement("div");
+        row.className = "grid-row";
+        row.style.top = totalHeight + "px";
+        row.innerHTML = renderFn(item, i);
+        container.appendChild(row);
+        totalHeight += rowHeight + rowGap;
+    });
+    container.style.height = totalHeight + "px";
+}
+
 function updateLeaderboards() {
     const sorted = getSortedPlayers();
     
-    // Render Public Dashboard Leaderboard
     syncContainer("publicTable", sorted, (p, i) => `
         <div class="${getRankClass(i)}"><strong>#${i + 1}</strong></div>
         <div class="${getRankClass(i)}"><strong>${p.name}</strong></div>
@@ -942,7 +955,6 @@ function updateLeaderboards() {
         <div>${p.kills}</div><div>${p.deaths}</div><div style="${getKdStyle(p.kills, p.deaths)}">${kd(p.kills, p.deaths)}</div>
     `);
 
-    // Render Admin Control View Table
     syncContainer("adminTable", sorted, (p, rank) => {
         const realIndex = getActivePlayers().findIndex(orig => orig.name === p.name);
         const pTier = p.tier || 'Unranked';
@@ -975,7 +987,6 @@ function updateLeaderboards() {
 function renderTierListLayout(sortedPlayers) {
     const tiers = { S: [], A: [], B: [], C: [], D: [], F: [] };
     
-    // Group players by tier
     sortedPlayers.forEach(p => {
         if (p.tier && tiers[p.tier] !== undefined) {
             tiers[p.tier].push(p);
@@ -986,7 +997,6 @@ function renderTierListLayout(sortedPlayers) {
         const rowBox = document.getElementById(`tier-${tierId}-content`);
         if (!rowBox) return;
 
-        // Sort by stored index if it exists, otherwise fallback to index in array
         tiers[tierId].sort((a, b) => (a.tierPosition || 0) - (b.tierPosition || 0));
 
         if (tiers[tierId].length === 0) {
@@ -998,395 +1008,186 @@ function renderTierListLayout(sortedPlayers) {
                 </div>
             `).join('');
         }
-
-        // Initialize Sortable for this row
-        new Sortable(rowBox, {
-            group: 'shared',
-            animation: 150,
-            onEnd: async function (evt) {
-                const newTier = evt.to.id.split('-')[1]; // Extracts S, A, B...
-                // Get the new order of all names in this tier
-                const newNamesOrder = Array.from(evt.to.children).map(c => c.dataset.name);
-                
-                await updateTierOrderAndPosition(newTier, newNamesOrder);
-            }
-        });
     });
 }
 
-function allowDrop(ev) {
-    ev.preventDefault(); // Necessary to allow a drop
-}
-
-function drag(ev) {
-    ev.dataTransfer.setData("text", ev.target.innerText);
-}
-
-async function drop(ev, newTier) {
-    ev.preventDefault();
-    const playerName = ev.dataTransfer.getData("text");
+async function addPlayer() {
+    const nameInput = document.getElementById("name");
+    const name = nameInput.value.trim();
+    if (!name) return alert("Enter a player name!");
     
-    // Find the player index in the state and update the tier
+    const newPlayer = { name, wins: 0, losses: 0, kills: 0, deaths: 0, tier: "" };
+    getActivePlayers().push(newPlayer);
+    nameInput.value = "";
+    await saveState();
+}
+
+async function updatePlayer(index, field, value) {
     const players = getActivePlayers();
-    const playerIndex = players.findIndex(p => p.name === playerName);
-    
-    if (playerIndex !== -1) {
-        await updatePlayer(playerIndex, 'tier', newTier);
-    }
+    if (field === "name" || field === "tier") players[index][field] = value;
+    else players[index][field] = parseInt(value) || 0;
+    await saveState();
 }
 
-async function updateTierOrderAndPosition(tier, orderedNames) {
-    const players = getActivePlayers();
-    
-    // Update every player affected by the move
-    orderedNames.forEach((name, index) => {
-        const p = players.find(player => player.name === name);
-        if (p) {
-            p.tier = tier; // Update tier if moved to a new one
-            p.tierPosition = index; // Save horizontal position
-        }
-    });
-    
-    // Push to Firebase
-    await saveState(); 
+async function removePlayer(index) {
+    if (!confirm("Delete this player?")) return;
+    getActivePlayers().splice(index, 1);
+    await saveState();
 }
 
-    async function saveNewTierOrder(tier, orderedNames) {
-    const players = getActivePlayers();
-    
-    // Update each player's position in the state based on the new array order
-    orderedNames.forEach((name, index) => {
-        const p = players.find(player => player.name === name);
-        if (p) {
-            p.tier = tier; // Ensure tier is correct
-            p.tierPosition = index; // Save the new horizontal index
-        }
-    });
-    
-    // Save the entire state back to Firebase
-    await saveState(); 
-}
-    
-function syncContainer(containerId, sortedData, htmlGenerator) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.style.height = `${sortedData.length * 62}px`;
-    const activeIds = [];
-
-    sortedData.forEach((player, index) => {
-        const elementId = `${containerId}_${btoa(encodeURIComponent(player.name)).replace(/=/g, "")}`;
-        activeIds.push(elementId);
-        let row = document.getElementById(elementId);
-        if (!row) {
-            row = document.createElement("div"); row.id = elementId; row.className = "grid-row";
-            container.appendChild(row);
-        }
-        if (document.activeElement?.closest(`#${elementId}`) === null) row.innerHTML = htmlGenerator(player, index);
-        row.style.transform = `translateY(${index * 62}px)`;
-    });
-
-    Array.from(container.children).forEach(el => { if (!activeIds.includes(el.id)) el.remove(); });
-}
-
-/* ================= TOURNAMENT PROGRESSION NODE INJECTOR ================= */
 function renderBrackets() {
-    const b = getActiveBracket();
-    const count = getActiveTeamCount();
-    const p2Size = getNextPowerOfTwo(count);
+    const bracket = getActiveBracket();
+    renderPublicBracket(bracket);
+    renderAdminBracket(bracket);
+}
 
-    const pubBox = document.getElementById("publicBracket");
-    const admBox = document.getElementById("adminBracket");
+function renderPublicBracket(bracket) {
+    document.getElementById("publicBracket").innerHTML = renderBracketHTML(bracket, false);
+}
 
-    const blockHtml = (id) => {
-        const isBye1 = b[`${id}_t1`] === "BYE";
-        const isBye2 = b[`${id}_t2`] === "BYE";
-        return {
-            pub: `
-                <div class="matchup">
-                    <div class="bracket-team"><span class="public-team-name ${isBye1?'bye-slot':''}">${b[`${id}_t1`] || 'TBD'}</span><span class="public-score">${b[`${id}_s1`]}</span></div>
-                    <div class="bracket-team"><span class="public-team-name ${isBye2?'bye-slot':''}">${b[`${id}_t2`] || 'TBD'}</span><span class="public-score">${b[`${id}_s2`]}</span></div>
-                </div>`,
-            adm: `
-                <div class="matchup">
-                    <div class="bracket-team"><input id="b_${id}_t1" class="team-name ${isBye1?'bye-slot':''}" value="${b[`${id}_t1`] || 'TBD'}"><input id="b_${id}_s1" class="team-score" type="number" value="${b[`${id}_s1`]}"></div>
-                    <div class="bracket-team"><input id="b_${id}_t2" class="team-name ${isBye2?'bye-slot':''}" value="${b[`${id}_t2`] || 'TBD'}"><input id="b_${id}_s2" class="team-score" type="number" value="${b[`${id}_s2`]}"></div>
-                </div>`
-        };
-    };
+function renderAdminBracket(bracket) {
+    document.getElementById("adminBracket").innerHTML = renderBracketHTML(bracket, true);
+}
 
-    let pRound1="", aRound1="", pRound2="", aRound2="", pRound3="", aRound3="", pRound4="", aRound4="";
-
-    if (p2Size >= 16) {
-        pRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
-        aRound1 += `<div class="bracket-round"><div class="bracket-round-title">Round of 16</div>`;
-        for(let i=1; i<=8; i++) {
-            let chunk = blockHtml(`r1_${i}`); pRound1+=chunk.pub; aRound1+=chunk.adm;
+function renderBracketHTML(bracket, isAdmin) {
+    let html = '<div class="bracket-round"><div class="bracket-round-title">Round 1</div>';
+    for (let i = 1; i <= 8; i++) {
+        const t1Key = `r1_${i}_t1`, t2Key = `r1_${i}_t2`;
+        const s1Key = `r1_${i}_s1`, s2Key = `r1_${i}_s2`;
+        if (bracket[t1Key]) {
+            html += `<div class="matchup">
+                <div class="bracket-team">
+                    ${isAdmin ? `<input class="team-name" value="${bracket[t1Key]}" onchange="updateBracketNode('${t1Key}', this.value)">` 
+                             : `<span class="public-team-name">${bracket[t1Key]}</span>`}
+                    <span class="public-score">${bracket[s1Key] || 0}</span>
+                </div>
+                <div class="bracket-team">
+                    ${isAdmin ? `<input class="team-name" value="${bracket[t2Key]}" onchange="updateBracketNode('${t2Key}', this.value)">` 
+                             : `<span class="public-team-name">${bracket[t2Key]}</span>`}
+                    <span class="public-score">${bracket[s2Key] || 0}</span>
+                </div>
+            </div>`;
         }
-        pRound1 += `</div>`; aRound1 += `</div>`;
     }
+    html += '</div>';
+    return html;
+}
 
-    if (p2Size >= 8) {
-        pRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
-        aRound2 += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>`;
-        for(let i=1; i<=4; i++) {
-            let chunk = blockHtml(`q${i}`); pRound2+=chunk.pub; aRound2+=chunk.adm;
-        }
-        pRound2 += `</div>`; aRound2 += `</div>`;
-    }
-
-    let s1 = blockHtml("s1"); let s2 = blockHtml("s2");
-    pRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.pub}${s2.pub}</div>`;
-    aRound3 = `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>${s1.adm}${s2.adm}</div>`;
-
-    let f = blockHtml("f");
-    pRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.pub}</div>`;
-    aRound4 = `<div class="bracket-round"><div class="bracket-round-title">Grand Finals</div>${f.adm}</div>`;
-
-    pubBox.innerHTML = pRound1 + pRound2 + pRound3 + pRound4;
-    if (document.activeElement?.closest(`.bracket-container`) === null) {
-        admBox.innerHTML = aRound1 + aRound2 + aRound3 + aRound4;
-    }
+function updateBracketNode(key, value) {
+    getActiveBracket()[key] = value;
 }
 
 async function saveBracketEdits() {
-    if (!databaseState.tournaments[currentTourneyId]) return;
-    const p2Size = getNextPowerOfTwo(getActiveTeamCount());
-    const target = {};
-
-    const syncNode = (id) => {
-        target[`${id}_t1`] = document.getElementById(`b_${id}_t1`).value;
-        target[`${id}_t2`] = document.getElementById(`b_${id}_t2`).value;
-        target[`${id}_s1`] = document.getElementById(`b_${id}_s1`).value;
-        target[`${id}_s2`] = document.getElementById(`b_${id}_s2`).value;
-    };
-
-    syncNode("f"); syncNode("s1"); syncNode("s2");
-    for(let i=1; i<=4; i++) syncNode(`q${i}`);
-    if (p2Size >= 16) { for(let i=1; i<=8; i++) syncNode(`r1_${i}`); }
-
-    databaseState.tournaments[currentTourneyId].bracket = target;
     await saveState();
-    alert("Bracket nodes synchronized!");
+    alert("Bracket saved!");
 }
 
-/* ================= DATA HANDLERS ================= */
-async function addPlayer() {
-    let name = document.getElementById("name").value.trim();
-    if (!name) return alert("Enter name");
-    let activePlayers = getActivePlayers();
-    if (activePlayers.some(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Exists");
-    activePlayers.push({ name, wins: 0, losses: 0, kills: 0, deaths: 0, tier: "" });
-    document.getElementById("name").value = "";
-    await saveState();
-}
-async function updatePlayer(i, field, value) {
-    let p = getActivePlayers()[i]; 
-    if (!p) return;
-    
-    if (field === "name" || field === "tier") {
-        p[field] = value; 
-    } else {
-        p[field] = Number(value) || 0;
-    }
-    
-    await saveState();
-    // ADD THIS LINE BELOW TO REFRESH THE UI
-    updateLeaderboards(); 
-}
-async function removePlayer(i) {
-    let activePlayers = getActivePlayers();
-    if (activePlayers[i] && confirm("Delete?")) { activePlayers.splice(i, 1); await saveState(); }
-}
-
-/* ================= SIMULATION BG BACKGROUND ================= */
-const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
-let width = canvas.width = window.innerWidth; let height = canvas.height = window.innerHeight;
-window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
-const particles = [];
-for (let i = 0; i < 150; i++) {
-    particles.push({ x: Math.random()*width, y: Math.random()*height, radius: Math.random()*1.5+0.3, vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.4 });
-}
-function animateBackground() {
-    ctx.clearRect(0, 0, width, height); ctx.strokeStyle = 'rgba(231, 76, 60, 0.03)'; ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += 60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke(); }
-    ctx.fillStyle = 'rgba(231, 76, 60, 3)';
-    particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy; if (p.x<0 || p.x>width) p.vx*=-1; if (p.y<0 || p.y>height) p.vy*=-1;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
-    });
-    requestAnimationFrame(animateBackground);
-}
-animateBackground();
-
-/* ================= EASTER EGG: PONG GAME LOGIC ENGINE ================= */
-let pongCanvas = document.getElementById("pongCanvas");
-let pongCtx = pongCanvas.getContext("2d");
-let pongAnimationId = null;
-let configuredBaseSpeed = 3; 
-
-const playerPaddle = { x: 15, y: 175, w: 12, h: 90, score: 0 };
-const aiPaddle = { x: 773, y: 175, w: 12, h: 90, score: 0 };
-const pongBall = { x: 400, y: 225, radius: 8, speed: 3, vx: 3, vy: 1.5 };
+let pongGame = { ballSpeed: 3, playerY: 200, ballX: 400, ballY: 225, ballSpeedX: 3, ballSpeedY: 3, p1Score: 0, p2Score: 0 };
 
 function startPongEasterEgg() {
     document.getElementById("pongWrapper").style.display = "flex";
-    playerPaddle.score = 0;
-    aiPaddle.score = 0;
-    resetPongBall();
-    window.addEventListener("mousemove", trackMousePaddleMove);
-    pongLoop();
+    initPong();
 }
 
 function closePongGame() {
-    cancelAnimationFrame(pongAnimationId);
-    window.removeEventListener("mousemove", trackMousePaddleMove);
     document.getElementById("pongWrapper").style.display = "none";
-    showPublic();
+    pongGame = { ballSpeed: 3, playerY: 200, ballX: 400, ballY: 225, ballSpeedX: 3, ballSpeedY: 3, p1Score: 0, p2Score: 0 };
 }
 
-function updateSliderSpeed(val) {
-    configuredBaseSpeed = parseFloat(val);
-    document.getElementById("speedVal").innerText = val;
+function updateSliderSpeed(value) {
+    pongGame.ballSpeed = parseInt(value);
+    document.getElementById("speedVal").innerText = value;
 }
 
-function trackMousePaddleMove(e) {
-    let rect = pongCanvas.getBoundingClientRect();
-    let relativeY = (e.clientY - rect.top) * (pongCanvas.height / rect.height);
-    playerPaddle.y = relativeY - playerPaddle.h / 2;
-    if (playerPaddle.y < 0) playerPaddle.y = 0;
-    if (playerPaddle.y + playerPaddle.h > pongCanvas.height) playerPaddle.y = pongCanvas.height - playerPaddle.h;
-}
-
-function resetPongBall() {
-    pongBall.x = pongCanvas.width / 2;
-    pongBall.y = pongCanvas.height / 2;
-    pongBall.speed = configuredBaseSpeed; 
-    pongBall.vx = (Math.random() > 0.5 ? 1 : -1) * pongBall.speed;
-    pongBall.vy = (Math.random() * 2 - 1) * (pongBall.speed * 0.6);
-}
-
-function updatePongPositions() {
-    pongBall.x += pongBall.vx;
-    pongBall.y += pongBall.vy;
-
-    let aiTargetY = pongBall.y - (aiPaddle.h / 2);
-    let aiTrackSpeed = 0.05 + (configuredBaseSpeed * 0.008); 
-    aiPaddle.y += (aiTargetY - aiPaddle.y) * Math.min(aiTrackSpeed, 0.15);
+function initPong() {
+    const canvas = document.getElementById("pongCanvas");
+    const ctx = canvas.getContext("2d");
+    const loop = setInterval(() => {
+        ctx.fillStyle = "#111216";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "white";
+        ctx.fillRect(10, pongGame.playerY, 10, 50);
+        ctx.fillRect(canvas.width - 20, 175, 10, 50);
+        ctx.beginPath();
+        ctx.arc(pongGame.ballX, pongGame.ballY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        pongGame.ballX += pongGame.ballSpeedX * pongGame.ballSpeed;
+        pongGame.ballY += pongGame.ballSpeedY * pongGame.ballSpeed;
+        
+        if (pongGame.ballY < 5 || pongGame.ballY > canvas.height - 5) {
+            pongGame.ballSpeedY *= -1;
+        }
+        
+        if (pongGame.ballX < 30 && pongGame.ballY > pongGame.playerY && pongGame.ballY < pongGame.playerY + 50) {
+            pongGame.ballSpeedX *= -1;
+        }
+        
+        if (pongGame.ballX < 0) pongGame.p2Score++, resetBall();
+        if (pongGame.ballX > canvas.width) pongGame.p1Score++, resetBall();
+        
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText(`${pongGame.p1Score} | ${pongGame.p2Score}`, canvas.width / 2 - 30, 30);
+        
+        if (pongGame.p1Score >= 10 || pongGame.p2Score >= 10) {
+            clearInterval(loop);
+            alert(`${pongGame.p1Score >= 10 ? "Player 1" : "CPU"} wins!`);
+            closePongGame();
+        }
+    }, 20);
     
-    if (aiPaddle.y < 0) aiPaddle.y = 0;
-    if (aiPaddle.y + aiPaddle.h > pongCanvas.height) aiPaddle.y = pongCanvas.height - aiPaddle.h;
-
-    if (pongBall.y - pongBall.radius < 0 || pongBall.y + pongBall.radius > pongCanvas.height) {
-        pongBall.vy = -pongBall.vy;
-    }
-
-    let currentPaddle = (pongBall.x < pongCanvas.width / 2) ? playerPaddle : aiPaddle;
-
-    if (detectPaddleCollision(pongBall, currentPaddle)) {
-        let collidePoint = (pongBall.y - (currentPaddle.y + currentPaddle.h/2));
-        collidePoint = collidePoint / (currentPaddle.h/2);
-        let angleRad = (Math.PI/4) * collidePoint;
-        let direction = (pongBall.x < pongCanvas.width/2) ? 1 : -1;
-        pongBall.speed = Math.min(pongBall.speed + 0.1, configuredBaseSpeed * 2.5); 
-        pongBall.vx = direction * pongBall.speed * Math.cos(angleRad);
-        pongBall.vy = pongBall.speed * Math.sin(angleRad);
-    }
-
-    if (pongBall.x - pongBall.radius < 0) {
-        aiPaddle.score++;
-        checkWinCondition();
-    } else if (pongBall.x + pongBall.radius > pongCanvas.width) {
-        playerPaddle.score++;
-        checkWinCondition();
-    }
+    document.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        pongGame.playerY = e.clientY - rect.top - 25;
+    });
 }
 
-function detectPaddleCollision(b, p) {
-    return b.x + b.radius > p.x && b.x - b.radius < p.x + p.w && 
-           b.y + b.radius > p.y && b.y - b.radius < p.y + p.h;
+function resetBall() {
+    pongGame.ballX = 400;
+    pongGame.ballY = 225;
+    pongGame.ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 3;
+    pongGame.ballSpeedY = (Math.random() - 0.5) * 4;
 }
 
-function checkWinCondition() {
-    if (playerPaddle.score >= 10) {
-        alert("Victory! You outplayed the AI.");
-        playerPaddle.score = 0; aiPaddle.score = 0;
-    } else if (aiPaddle.score >= 10) {
-        alert("Defeat! The AI secured the match.");
-        playerPaddle.score = 0; aiPaddle.score = 0;
-    }
-    resetPongBall();
-}
-
-function drawPongObjects() {
-    pongCtx.fillStyle = "#111216";
-    pongCtx.fillRect(0, 0, pongCanvas.width, pongCanvas.height);
-
-    pongCtx.strokeStyle = "rgba(231, 76, 60, 0.15)";
-    pongCtx.setLineDash([10, 10]);
-    pongCtx.lineWidth = 4;
-    pongCtx.beginPath();
-    pongCtx.moveTo(pongCanvas.width/2, 0);
-    pongCtx.lineTo(pongCanvas.width/2, pongCanvas.height);
-    pongCtx.stroke();
-    pongCtx.setLineDash([]); 
-
-    pongCtx.fillStyle = "#f5f6fa";
-    pongCtx.font = "bold 32px 'Segoe UI'";
-    pongCtx.fillText(playerPaddle.score, pongCanvas.width/4, 50);
-    pongCtx.fillText(aiPaddle.score, (pongCanvas.width/4) * 3, 50);
-
-    pongCtx.fillStyle = "#e74c3c"; 
-    pongCtx.fillRect(playerPaddle.x, playerPaddle.y, playerPaddle.w, playerPaddle.h);
-    pongCtx.fillStyle = "#718093"; 
-    pongCtx.fillRect(aiPaddle.x, aiPaddle.y, aiPaddle.w, aiPaddle.h);
-
-    pongCtx.fillStyle = "#2ecc71"; 
-    pongCtx.beginPath();
-    pongCtx.arc(pongBall.x, pongBall.y, pongBall.radius, 0, Math.PI*2);
-    pongCtx.fill();
-}
-
-function pongLoop() {
-    updatePongPositions();
-    drawPongObjects();
-    pongAnimationId = requestAnimationFrame(pongLoop);
-}
+function initBackgroundCanvas() {
+    const canvas = document.getElementById("bg-canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     
-    // Add these listeners at the bottom of your script
-document.getElementById('btnNavLeaderboard').addEventListener('click', () => switchPanel('leaderboard'));
-document.getElementById('btnNavBracket').addEventListener('click', () => switchPanel('bracket'));
-document.getElementById('btnNavTiers').addEventListener('click', () => switchPanel('tiers'));
-document.getElementById('btnNavAdmin').addEventListener('click', () => switchPanel('login'));
-
-// Sort Buttons
-document.getElementById('btnSortKd').addEventListener('click', () => setSort('kd'));
-document.getElementById('btnSortWin').addEventListener('click', () => setSort('win'));
-
-// Other interactive elements
-// Note: If you have more buttons (like inside the admin table), 
-// ensure you attach them here or use event delegation.
+    const particles = [];
+    for (let i = 0; i < 50; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speedX: (Math.random() - 0.5) * 0.5,
+            speedY: (Math.random() - 0.5) * 0.5
+        });
+    }
     
-// --- EXPOSE FUNCTIONS TO WINDOW FOR HTML ONCLICK ---
-window.switchPanel = switchPanel;
-window.login = login;
-window.setSort = setSort;
-window.addPlayer = addPlayer;
-window.updatePlayer = updatePlayer;
-window.removePlayer = removePlayer;
-window.switchTournament = switchTournament;
-window.createNewTournament = createNewTournament;
-window.renameActiveTournament = renameActiveTournament;
-window.changeActiveTeamsCount = changeActiveTeamsCount;
-window.deleteActiveTournament = deleteActiveTournament;
-window.saveBracketEdits = saveBracketEdits;
-window.closePongGame = closePongGame;
-window.updateSliderSpeed = updateSliderSpeed;
-window.startPongEasterEgg = startPongEasterEgg;
-window.allowDrop = allowDrop;
-window.drag = drag;
-window.drop = drop;    
+    setInterval(() => {
+        ctx.fillStyle = "rgba(8, 9, 10, 0.1)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "rgba(231, 76, 60, 0.3)";
+        particles.forEach(p => {
+            p.x += p.speedX;
+            p.y += p.speedY;
+            if (p.x < 0) p.x = canvas.width;
+            if (p.y < 0) p.y = canvas.height;
+            if (p.x > canvas.width) p.x = 0;
+            if (p.y > canvas.height) p.y = 0;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+    }, 30);
+}
 
-switchPanel('leaderboard');
+document.addEventListener("DOMContentLoaded", () => {
+    initBackgroundCanvas();
+});
 </script>
 </body>
 </html>
