@@ -710,9 +710,8 @@ function initParticles() {
 initParticles();
 
 function animateParticles() {
-    // Crucial: Draw a translucent background layer over the previous frame to create particle trails
-    ctx.fillStyle = 'rgba(8, 9, 10, 0.15)'; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fully clear the canvas every frame to completely remove all trails
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     particles.forEach(p => {
         p.update();
