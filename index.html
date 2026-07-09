@@ -659,6 +659,7 @@ const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
+let isAdminLoggedIn = false; // Add this line to track admin state
 
 let databaseState = {
     adminPassword: "admin",
@@ -940,7 +941,6 @@ function updateLeaderboards() {
     }
 }
 
-
 /* ================= RENDERING & DRAG-AND-DROP: SKILL TIER LIST ================= */
 function renderTierList() {
     const tiers = ['S', 'A', 'B', 'C', 'D', 'F'];
@@ -959,10 +959,10 @@ function renderTierList() {
             if (container) {
                 const badge = document.createElement("div");
                 badge.className = `tier-badge badge-${player.tier.toLowerCase()}`;
-                
-                // Add tracking attribute so Sortable knows who is who when dropped
                 badge.setAttribute('data-name', player.name);
-                badge.style.cursor = 'grab';
+                
+                // Only show the grab cursor if logged in as admin
+                badge.style.cursor = isAdminLoggedIn ? 'grab' : 'default';
                 
                 badge.innerHTML = `${player.name} <span style="font-size:0.75rem; opacity:0.6; margin-left:4px;">(${kd(player.kills, player.deaths)} K/D)</span>`;
                 container.appendChild(badge);
@@ -970,20 +970,25 @@ function renderTierList() {
         }
     });
 
-    // 3. Initialize SortableJS on containers if it hasn't been set up yet
+    // 3. Initialize or Update SortableJS configurations
     tiers.forEach(t => {
         const el = document.getElementById(`tier-${t}-content`);
-        if (el && !el.dataset.sortableInitialized) {
-            Sortable.create(el, {
-                group: 'sharedSkillTiers', // Allows dragging elements across rows
+        if (el) {
+            // If it already exists, destroy it so we can re-initialize with correct permissions
+            if (el.sortableInstance) {
+                el.sortableInstance.destroy();
+            }
+
+            // Create instance and store a direct reference to it on the element
+            el.sortableInstance = Sortable.create(el, {
+                group: 'sharedSkillTiers',
                 animation: 150,
                 ghostClass: 'sortable-ghost',
+                disabled: !isAdminLoggedIn, // CRITICAL: Locks dragging for regular public viewers
                 onEnd: async () => {
-                    // Fires instantly when a user drops a player badge anywhere
                     await saveDraggedTiers();
                 }
             });
-            el.dataset.sortableInitialized = "true";
         }
     });
 }
@@ -1069,6 +1074,7 @@ window.login = function() {
     
     if (inputPass === operationalPassword) {
         passwordInput.value = "";
+        isAdminLoggedIn = true; // Elevate privileges
         window.switchPanel('admin');
     } else {
         alert("Access Denied.");
@@ -1076,6 +1082,13 @@ window.login = function() {
 }
 
 window.switchPanel = function(panelName) {
+    // If they switch to a public view from the admin area, revoke active drag access
+    if (panelName !== 'admin') {
+        isAdminLoggedIn = false;
+    } else {
+        isAdminLoggedIn = true; // Keeps it active if they are refreshing the admin screen
+    }
+
     document.getElementById("leaderboardView").style.display = "none";
     document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
@@ -1093,8 +1106,11 @@ window.switchPanel = function(panelName) {
     document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('active-nav'));
     const btnMap = { 'leaderboard': 'btnNavLeaderboard', 'bracket': 'btnNavBracket', 'tiers': 'btnNavTiers', 'admin': 'btnNavAdmin' };
     if(btnMap[panelName]) document.getElementById(btnMap[panelName]).classList.add('active-nav');
-}
 
+    // Re-render tiers to quickly process lock/unlock changes on layout elements
+    renderTierList();
+}
+    
 window.createNewTournament = async function() {
     const nameInput = document.getElementById("newTourneyName");
     const countInput = document.getElementById("newTourneyTeamsCount");
