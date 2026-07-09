@@ -931,6 +931,15 @@ function login() {
         alert("Access Denied.");
     }
 }
+
+window.login = login;
+window.switchTournament = switchTournament;
+window.createNewTournament = createNewTournament;
+window.renameActiveTournament = renameActiveTournament;
+window.changeActiveTeamsCount = changeActiveTeamsCount;
+window.deleteActiveTournament = deleteActiveTournament;
+window.setSort = setSort;
+window.switchPanel = switchPanel;
     
 function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
 function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
