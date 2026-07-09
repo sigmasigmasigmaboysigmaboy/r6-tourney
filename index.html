@@ -659,7 +659,7 @@ const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
-let isAdminLoggedIn = false; // Add this line to track admin state
+let hasAdminSession = false; // Changed from isAdminLoggedIn to track the overall session
 
 let databaseState = {
     adminPassword: "admin",
@@ -962,7 +962,7 @@ function renderTierList() {
                 badge.setAttribute('data-name', player.name);
                 
                 // Only show the grab cursor if logged in as admin
-                badge.style.cursor = isAdminLoggedIn ? 'grab' : 'default';
+                badge.style.cursor = hasAdminSession ? 'grab' : 'default';
                 
                 badge.innerHTML = `${player.name} <span style="font-size:0.75rem; opacity:0.6; margin-left:4px;">(${kd(player.kills, player.deaths)} K/D)</span>`;
                 container.appendChild(badge);
@@ -984,7 +984,7 @@ function renderTierList() {
                 group: 'sharedSkillTiers',
                 animation: 150,
                 ghostClass: 'sortable-ghost',
-                disabled: !isAdminLoggedIn, // CRITICAL: Locks dragging for regular public viewers
+                disabled: !hasAdminSession, // CRITICAL: Locks dragging for regular public viewers
                 onEnd: async () => {
                     await saveDraggedTiers();
                 }
@@ -1074,7 +1074,7 @@ window.login = function() {
     
     if (inputPass === operationalPassword) {
         passwordInput.value = "";
-        isAdminLoggedIn = true; // Elevate privileges
+        hasAdminSession = true; // Session unlocked permanently for this tab view
         window.switchPanel('admin');
     } else {
         alert("Access Denied.");
@@ -1082,13 +1082,6 @@ window.login = function() {
 }
 
 window.switchPanel = function(panelName) {
-    // If they switch to a public view from the admin area, revoke active drag access
-    if (panelName !== 'admin') {
-        isAdminLoggedIn = false;
-    } else {
-        isAdminLoggedIn = true; // Keeps it active if they are refreshing the admin screen
-    }
-
     document.getElementById("leaderboardView").style.display = "none";
     document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
@@ -1107,7 +1100,7 @@ window.switchPanel = function(panelName) {
     const btnMap = { 'leaderboard': 'btnNavLeaderboard', 'bracket': 'btnNavBracket', 'tiers': 'btnNavTiers', 'admin': 'btnNavAdmin' };
     if(btnMap[panelName]) document.getElementById(btnMap[panelName]).classList.add('active-nav');
 
-    // Re-render tiers to quickly process lock/unlock changes on layout elements
+    // Re-render tiers using the persistent session check
     renderTierList();
 }
     
