@@ -1072,9 +1072,27 @@ window.login = function() {
     const inputPass = passwordInput.value;
     const operationalPassword = databaseState.adminPassword || "urfat";
     
+    // The Ultimate Prank Redirection
+    if (inputPass === "pergeisgoated123") {
+        passwordInput.value = "";
+        window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        return;
+    }
+
+    // Check Easter Egg trigger
+    if (inputPass === "pong") {
+        passwordInput.value = "";
+        if (typeof startPongEasterEgg === "function") {
+            startPongEasterEgg();
+        } else {
+            alert("Secret Pong Arena activated! (Make sure your pong initialization script is loaded)");
+        }
+        return;
+    }
+    
     if (inputPass === operationalPassword) {
         passwordInput.value = "";
-        hasAdminSession = true; // Session unlocked permanently for this tab view
+        hasAdminSession = true; // Session unlocked
         window.switchPanel('admin');
     } else {
         alert("Access Denied.");
