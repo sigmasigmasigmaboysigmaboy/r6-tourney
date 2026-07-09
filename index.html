@@ -650,11 +650,12 @@ const db = getFirestore(app);
 
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-const ADMIN_PASSWORD =  "urfat";
+// Removed hardcoded ADMIN_PASSWORD variable line entirely
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
 
 let databaseState = {
+    adminPassword: "admin", // Fallback local value until snapshot updates
     tournaments: {
         "default_arena": {
             name: "Alpha Tournament",
@@ -664,6 +665,23 @@ let databaseState = {
         }
     }
 };
+
+/* ================= SYNC CORE ENGINE ================= */
+onSnapshot(GLOBAL_DOC_REF, (snap) => {
+    if (snap.exists()) {
+        databaseState = snap.data();
+        
+        // Safety initialization if database field doesn't exist yet
+        if (!databaseState.adminPassword) {
+            databaseState.adminPassword = "admin";
+        }
+    } else {
+        saveState();
+    }
+    populateTournamentSelectors();
+    updateLeaderboards();
+    renderBrackets();
+});
 
 function getNextPowerOfTwo(n) {
     if (n <= 2) return 2;
@@ -735,18 +753,6 @@ function generateTreeStructure(teamCount) {
 
     return nodes;
 }
-
-/* ================= SYNC CORE ENGINE ================= */
-onSnapshot(GLOBAL_DOC_REF, (snap) => {
-    if (snap.exists()) {
-        databaseState = snap.data();
-    } else {
-        saveState();
-    }
-    populateTournamentSelectors();
-    updateLeaderboards();
-    renderBrackets();
-});
 
 async function saveState() {
     await setDoc(GLOBAL_DOC_REF, databaseState);
@@ -907,13 +913,17 @@ function login() {
     const passwordInput = document.getElementById("password");
     const inputPass = passwordInput.value;
     
+    // Check Easter Egg trigger
     if (inputPass === "pong") {
         passwordInput.value = "";
         startPongEasterEgg();
         return;
     }
     
-    if (inputPass === ADMIN_PASSWORD) {
+    // Pull down dynamic reference directly from secure real-time listener state
+    const operationalPassword = databaseState.adminPassword || "admin";
+    
+    if (inputPass === operationalPassword) {
         passwordInput.value = "";
         switchPanel('admin');
         updateLeaderboards();
@@ -921,6 +931,7 @@ function login() {
         alert("Access Denied.");
     }
 }
+    
 function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
 function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
 function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 ? "rank-3" : "")); }
