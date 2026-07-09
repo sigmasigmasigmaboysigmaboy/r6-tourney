@@ -647,42 +647,83 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const GLOBAL_DOC_REF = doc(db, "leaderboard", "v2_ecosystem");
 
-// Removed hardcoded ADMIN_PASSWORD variable line entirely
 let sortMode = "kd";
 let currentTourneyId = "default_arena";
 
 let databaseState = {
-    adminPassword: "admin", // Fallback local value until snapshot updates
+    adminPassword: "admin",
     tournaments: {
         "default_arena": {
             name: "Alpha Tournament",
             teamCount: 8,
             players: [],
-            bracket: generateTreeStructure(8)
+            bracket: {}
         }
     }
 };
 
-/* ================= SYNC CORE ENGINE ================= */
-onSnapshot(GLOBAL_DOC_REF, (snap) => {
-    if (snap.exists()) {
-        databaseState = snap.data();
-        
-        // Safety initialization if database field doesn't exist yet
-        if (!databaseState.adminPassword) {
-            databaseState.adminPassword = "admin";
-        }
-    } else {
-        saveState();
-    }
-    populateTournamentSelectors();
-    updateLeaderboards();
-    renderBrackets();
-});
+/* ================= BACKGROUND CANVAS WITH TRAILS ================= */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
 
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Particle {
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 1;
+        this.speedX = Math.random() * 0.4 - 0.2;
+        this.speedY = Math.random() * -0.6 - 0.1; // Float upward
+        this.color = 'rgba(231, 76, 60, ' + (Math.random() * 0.4 + 0.1) + ')';
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.y < 0) {
+            this.y = canvas.height;
+            this.x = Math.random() * canvas.width;
+        }
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function initParticles() {
+    particles = [];
+    for (let i = 0; i < 60; i++) {
+        particles.push(new Particle());
+    }
+}
+initParticles();
+
+function animateParticles() {
+    // Crucial: Draw a translucent background layer over the previous frame to create particle trails
+    ctx.fillStyle = 'rgba(8, 9, 10, 0.15)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    particles.forEach(p => {
+        p.update();
+        p.draw();
+    });
+    requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+
+/* ================= TOURNAMENT TREE LOGIC ================= */
 function getNextPowerOfTwo(n) {
     if (n <= 2) return 2;
     if (n <= 4) return 4;
@@ -754,12 +795,28 @@ function generateTreeStructure(teamCount) {
     return nodes;
 }
 
+
+/* ================= REAL-TIME ECOSYSTEM SYNC ================= */
+onSnapshot(GLOBAL_DOC_REF, (snap) => {
+    if (snap.exists()) {
+        databaseState = snap.data();
+        if (!databaseState.adminPassword) databaseState.adminPassword = "urfat";
+    } else {
+        saveState();
+    }
+    populateTournamentSelectors();
+    updateLeaderboards();
+    renderBrackets();
+    renderTierList(); // Dynamically populates Skill Tiers on state change
+});
+
 async function saveState() {
     await setDoc(GLOBAL_DOC_REF, databaseState);
 }
 
 function populateTournamentSelectors() {
     const selector = document.getElementById("globalTourneySelect");
+    if (!selector) return;
     const previousSelection = selector.value || currentTourneyId;
     
     selector.innerHTML = "";
@@ -789,107 +846,166 @@ function populateTournamentSelectors() {
     }
 }
 
-function switchTournament(id) {
+window.switchTournament = function(id) {
     currentTourneyId = id;
     updateLeaderboards();
     renderBrackets();
+    renderTierList();
 }
 
-async function createNewTournament() {
-    const nameInput = document.getElementById("newTourneyName");
-    const countInput = document.getElementById("newTourneyTeamsCount");
-    const name = nameInput.value.trim();
-    const count = parseInt(countInput.value) || 8;
 
-    if (!name) return alert("Please type an arena name!");
-    if (count < 2) return alert("Requires at least 2 teams!");
-
-    const newId = "arena_" + Date.now();
-    databaseState.tournaments[newId] = {
-        name: name,
-        teamCount: count,
-        players: [],
-        bracket: generateTreeStructure(count)
-    };
-
-    nameInput.value = "";
-    countInput.value = "";
-    currentTourneyId = newId;
-    await saveState();
-}
-
-async function renameActiveTournament() {
-    if (!databaseState.tournaments[currentTourneyId]) return;
-    const renameInput = document.getElementById("activeTourneyRenameInput");
-    const newName = renameInput.value.trim();
-    if (!newName) return alert("Name cannot be blank!");
-
-    databaseState.tournaments[currentTourneyId].name = newName;
-    await saveState();
-    alert("Tournament title updated!");
-}
-
-async function changeActiveTeamsCount() {
-    if (!databaseState.tournaments[currentTourneyId]) return;
-    const countInput = document.getElementById("activeTeamsCountModifier");
-    const newCount = parseInt(countInput.value) || 8;
-
-    if (newCount < 2) return alert("Must have 2+ teams!");
-    if (!confirm(`Regenerating team capacity will reset current node assignments. Proceed?`)) return;
-
-    databaseState.tournaments[currentTourneyId].teamCount = newCount;
-    databaseState.tournaments[currentTourneyId].bracket = generateTreeStructure(newCount);
-    await saveState();
-}
-
-async function deleteActiveTournament() {
-    if (!databaseState.tournaments[currentTourneyId]) return;
-    if (!confirm(`Permanently delete this tournament arena?`)) return;
-
-    delete databaseState.tournaments[currentTourneyId];
-    const remainingIds = Object.keys(databaseState.tournaments);
-    
-    if (remainingIds.length === 0) {
-        databaseState.tournaments["default_arena"] = {
-            name: "Alpha Tournament",
-            teamCount: 8,
-            players: [],
-            bracket: generateTreeStructure(8)
-        };
-        currentTourneyId = "default_arena";
-    } else {
-        currentTourneyId = remainingIds[0];
-    }
-    await saveState();
-}
-
-function getActivePlayers() { return databaseState.tournaments[currentTourneyId]?.players || []; }
-function getActiveBracket() { return databaseState.tournaments[currentTourneyId]?.bracket || {}; }
-function getActiveTeamCount() { return databaseState.tournaments[currentTourneyId]?.teamCount || 8; }
-
-/* ================= DATA MANIPULATION LOGIC ================= */
-function setSort(mode) { 
+/* ================= LEADERBOARD & INTERACTION ENGINE ================= */
+window.setSort = function(mode) { 
     sortMode = mode; 
-    if(mode === 'kd') {
-        document.getElementById("btnSortKd").classList.add("active-nav");
-        document.getElementById("btnSortWin").classList.remove("active-nav");
-    } else {
-        document.getElementById("btnSortWin").classList.add("active-nav");
-        document.getElementById("btnSortKd").classList.remove("active-nav");
-    }
+    document.getElementById("btnSortKd").classList.toggle("active-nav", mode === 'kd');
+    document.getElementById("btnSortWin").classList.toggle("active-nav", mode === 'win');
     updateLeaderboards(); 
 }
 
-function getSortedPlayers() {
-    let copy = [...getActivePlayers()];
-    copy.sort((a, b) => {
+function getActivePlayers() { return databaseState.tournaments[currentTourneyId]?.players || []; }
+function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
+function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
+function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 ? "rank-3" : "")); }
+
+function updateLeaderboards() {
+    const players = getActivePlayers();
+    let sorted = [...players];
+    sorted.sort((a, b) => {
         if (sortMode === "win") return (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1));
         return (b.kills / (b.deaths || 1)) - (a.kills / (a.deaths || 1));
     });
-    return copy;
+
+    // Public View DOM Construction
+    const pubTable = document.getElementById("publicTable");
+    if (pubTable) {
+        pubTable.innerHTML = "";
+        sorted.forEach((p, i) => {
+            const row = document.createElement("div");
+            row.className = "grid-row";
+            row.style.position = "relative";
+            row.style.height = "var(--row-height)";
+            row.style.marginBottom = "var(--row-gap)";
+            row.className = "grid-row public-grid";
+            row.innerHTML = `
+                <div class="${getRankClass(i)}">#${i + 1}</div>
+                <div class="${getRankClass(i)}">${p.name}</div>
+                <div>${p.wins}</div><div>${p.losses}</div><div>${winRate(p.wins, p.losses)}</div>
+                <div>${p.kills}</div><div>${p.deaths}</div><div>${kd(p.kills, p.deaths)}</div>
+            `;
+            pubTable.appendChild(row);
+        });
+    }
+
+    // Admin View Grid Construction
+    const adminTable = document.getElementById("adminTable");
+    if (adminTable) {
+        adminTable.innerHTML = "";
+        players.forEach((p, i) => {
+            const row = document.createElement("div");
+            row.className = "grid-row admin-grid";
+            row.style.position = "relative";
+            row.style.height = "var(--row-height)";
+            row.style.marginBottom = "var(--row-gap)";
+            row.innerHTML = `
+                <div>#${i+1}</div>
+                <div><strong>${p.name}</strong></div>
+                <div><input type="number" value="${p.wins}" onchange="updateStat(${i}, 'wins', this.value)"></div>
+                <div><input type="number" value="${p.losses}" onchange="updateStat(${i}, 'losses', this.value)"></div>
+                <div><input type="number" value="${p.kills}" onchange="updateStat(${i}, 'kills', this.value)"></div>
+                <div><input type="number" value="${p.deaths}" onchange="updateStat(${i}, 'deaths', this.value)"></div>
+                <div>${winRate(p.wins, p.losses)}</div>
+                <div>${kd(p.kills, p.deaths)}</div>
+                <div>
+                    <select onchange="updateStat(${i}, 'tier', this.value)">
+                        <option value="Unassigned" ${p.tier==='Unassigned'?'selected':''}>None</option>
+                        <option value="S" ${p.tier==='S'?'selected':''}>S Tier</option>
+                        <option value="A" ${p.tier==='A'?'selected':''}>A Tier</option>
+                        <option value="B" ${p.tier==='B'?'selected':''}>B Tier</option>
+                        <option value="C" ${p.tier==='C'?'selected':''}>C Tier</option>
+                        <option value="D" ${p.tier==='D'?'selected':''}>D Tier</option>
+                        <option value="F" ${p.tier==='F'?'selected':''}>F Tier</option>
+                    </select>
+                </div>
+                <div><button class="danger" onclick="deletePlayer(${i})" style="padding:4px 8px; font-size:0.75rem;">Remove</button></div>
+            `;
+            adminTable.appendChild(row);
+        });
+    }
 }
 
-function switchPanel(panelName) {
+
+/* ================= RENDERING FIX: SKILL TIER LIST ================= */
+function renderTierList() {
+    const tiers = ['S', 'A', 'B', 'C', 'D', 'F'];
+    // Reset all tier panels safely
+    tiers.forEach(t => {
+        const targetElement = document.getElementById(`tier-${t}-content`);
+        if (targetElement) targetElement.innerHTML = "";
+    });
+
+    const players = getActivePlayers();
+    players.forEach(player => {
+        if (player.tier && tiers.includes(player.tier.toUpperCase())) {
+            const container = document.getElementById(`tier-${player.tier.toUpperCase()}-content`);
+            if (container) {
+                const badge = document.createElement("div");
+                badge.className = `tier-badge badge-${player.tier.toLowerCase()}`;
+                badge.innerHTML = `${player.name} <span style="font-size:0.75rem; opacity:0.6; margin-left:4px;">(${kd(player.kills, player.deaths)} K/D)</span>`;
+                container.appendChild(badge);
+            }
+        }
+    });
+}
+
+
+/* ================= BRACKETS AND CONTROL INTERFACES ================= */
+function renderBrackets() {
+    // Stub visualization layer to hook publicBracket containers seamlessly
+    const pubB = document.getElementById("publicBracket");
+    if(pubB) pubB.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No bracket active or layout generation pending variables.</p>`;
+}
+
+window.addPlayer = async function() {
+    const nameInput = document.getElementById("name");
+    const name = nameInput.value.trim();
+    if(!name) return alert("Enter player tag!");
+
+    if(!databaseState.tournaments[currentTourneyId].players) {
+        databaseState.tournaments[currentTourneyId].players = [];
+    }
+    databaseState.tournaments[currentTourneyId].players.push({
+        name: name, wins: 0, losses: 0, kills: 0, deaths: 0, tier: "Unassigned"
+    });
+    nameInput.value = "";
+    await saveState();
+}
+
+window.updateStat = async function(index, field, value) {
+    let parsedValue = field === 'tier' ? value : parseInt(value) || 0;
+    databaseState.tournaments[currentTourneyId].players[index][field] = parsedValue;
+    await saveState();
+}
+
+window.deletePlayer = async function(index) {
+    if(!confirm("Remove player profile entirely?")) return;
+    databaseState.tournaments[currentTourneyId].players.splice(index, 1);
+    await saveState();
+}
+
+window.login = function() {
+    const passwordInput = document.getElementById("password");
+    const inputPass = passwordInput.value;
+    const operationalPassword = databaseState.adminPassword || "urfat";
+    
+    if (inputPass === operationalPassword) {
+        passwordInput.value = "";
+        window.switchPanel('admin');
+    } else {
+        alert("Access Denied.");
+    }
+}
+
+window.switchPanel = function(panelName) {
     document.getElementById("leaderboardView").style.display = "none";
     document.getElementById("bracketView").style.display = "none";
     document.getElementById("tierListView").style.display = "none";
@@ -909,305 +1025,45 @@ function switchPanel(panelName) {
     if(btnMap[panelName]) document.getElementById(btnMap[panelName]).classList.add('active-nav');
 }
 
-function login() {
-    const passwordInput = document.getElementById("password");
-    const inputPass = passwordInput.value;
-    
-    // Check Easter Egg trigger
-    if (inputPass === "pong") {
-        passwordInput.value = "";
-        startPongEasterEgg();
-        return;
-    }
-    
-    // Pull down dynamic reference directly from secure real-time listener state
-    const operationalPassword = databaseState.adminPassword || "admin";
-    
-    if (inputPass === operationalPassword) {
-        passwordInput.value = "";
-        switchPanel('admin');
-        updateLeaderboards();
-    } else {
-        alert("Access Denied.");
-    }
-}
-
-window.login = login;
-window.switchTournament = switchTournament;
-window.createNewTournament = createNewTournament;
-window.renameActiveTournament = renameActiveTournament;
-window.changeActiveTeamsCount = changeActiveTeamsCount;
-window.deleteActiveTournament = deleteActiveTournament;
-window.setSort = setSort;
-window.switchPanel = switchPanel;
-    
-function winRate(w, l) { return (w + l === 0) ? "0.0%" : ((w / (w + l)) * 100).toFixed(1) + "%"; }
-function kd(k, d) { return d === 0 ? k.toFixed(2) : (k / d).toFixed(2); }
-function getRankClass(i) { return i===0 ? "rank-1" : (i===1 ? "rank-2" : (i===2 ? "rank-3" : "")); }
-function getKdStyle(k, d) { return (d===0?k:k/d) >= 1.0 ? "color:var(--success);font-weight:bold;" : "color:var(--danger);font-weight:bold;"; }
-
-/* ================= RENDERING HANDLERS ================= */
-function syncContainer(containerId, dataArray, renderFn) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = "";
-    let totalHeight = 0;
-    const rowHeight = 54;
-    const rowGap = 8;
-    dataArray.forEach((item, i) => {
-        const row = document.createElement("div");
-        row.className = "grid-row";
-        row.style.top = totalHeight + "px";
-        row.innerHTML = renderFn(item, i);
-        container.appendChild(row);
-        totalHeight += rowHeight + rowGap;
-    });
-    container.style.height = totalHeight + "px";
-}
-
-function updateLeaderboards() {
-    const sorted = getSortedPlayers();
-    
-    syncContainer("publicTable", sorted, (p, i) => `
-        <div class="${getRankClass(i)}"><strong>#${i + 1}</strong></div>
-        <div class="${getRankClass(i)}"><strong>${p.name}</strong></div>
-        <div>${p.wins}</div><div>${p.losses}</div><div>${winRate(p.wins, p.losses)}</div>
-        <div>${p.kills}</div><div>${p.deaths}</div><div style="${getKdStyle(p.kills, p.deaths)}">${kd(p.kills, p.deaths)}</div>
-    `);
-
-    syncContainer("adminTable", sorted, (p, rank) => {
-        const realIndex = getActivePlayers().findIndex(orig => orig.name === p.name);
-        const pTier = p.tier || 'Unranked';
-        return `
-            <div class="${getRankClass(rank)}">#${rank + 1}</div>
-            <div><input value="${p.name}" class="${getRankClass(rank)}" onchange="updatePlayer(${realIndex}, 'name', this.value)"></div>
-            <div><input type="number" value="${p.wins}" onchange="updatePlayer(${realIndex}, 'wins', this.value)"></div>
-            <div><input type="number" value="${p.losses}" onchange="updatePlayer(${realIndex}, 'losses', this.value)"></div>
-            <div><input type="number" value="${p.kills}" onchange="updatePlayer(${realIndex}, 'kills', this.value)"></div>
-            <div><input type="number" value="${p.deaths}" onchange="updatePlayer(${realIndex}, 'deaths', this.value)"></div>
-            <div>${winRate(p.wins, p.losses)}</div><div style="${getKdStyle(p.kills, p.deaths)}">${kd(p.kills, p.deaths)}</div>
-            <div>
-                <select onchange="updatePlayer(${realIndex}, 'tier', this.value)" style="padding: 4px 8px; font-size:0.85rem;">
-                    <option value="" ${pTier === 'Unranked' ? 'selected' : ''}>None</option>
-                    <option value="S" ${pTier === 'S' ? 'selected' : ''}>S Tier</option>
-                    <option value="A" ${pTier === 'A' ? 'selected' : ''}>A Tier</option>
-                    <option value="B" ${pTier === 'B' ? 'selected' : ''}>B Tier</option>
-                    <option value="C" ${pTier === 'C' ? 'selected' : ''}>C Tier</option>
-                    <option value="D" ${pTier === 'D' ? 'selected' : ''}>D Tier</option>
-                    <option value="F" ${pTier === 'F' ? 'selected' : ''}>F Tier</option>
-                </select>
-            </div>
-            <div><button class="danger" onclick="removePlayer(${realIndex})">Delete</button></div>
-        `;
-    });
-
-    renderTierListLayout(sorted);
-}
-
-function renderTierListLayout(sortedPlayers) {
-    const tiers = { S: [], A: [], B: [], C: [], D: [], F: [] };
-    
-    sortedPlayers.forEach(p => {
-        if (p.tier && tiers[p.tier] !== undefined) {
-            tiers[p.tier].push(p);
-        }
-    });
-
-    Object.keys(tiers).forEach(tierId => {
-        const rowBox = document.getElementById(`tier-${tierId}-content`);
-        if (!rowBox) return;
-
-        tiers[tierId].sort((a, b) => (a.tierPosition || 0) - (b.tierPosition || 0));
-
-        if (tiers[tierId].length === 0) {
-            rowBox.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; font-style: italic;">No players assigned</span>`;
-        } else {
-            rowBox.innerHTML = tiers[tierId].map(p => `
-                <div class="tier-badge badge-${tierId.toLowerCase()}" data-name="${p.name}">
-                     ${p.name}
-                </div>
-            `).join('');
-        }
-    });
-}
-
-async function addPlayer() {
-    const nameInput = document.getElementById("name");
+window.createNewTournament = async function() {
+    const nameInput = document.getElementById("newTourneyName");
+    const countInput = document.getElementById("newTourneyTeamsCount");
     const name = nameInput.value.trim();
-    if (!name) return alert("Enter a player name!");
-    
-    const newPlayer = { name, wins: 0, losses: 0, kills: 0, deaths: 0, tier: "" };
-    getActivePlayers().push(newPlayer);
-    nameInput.value = "";
+    const count = parseInt(countInput.value) || 8;
+
+    if (!name) return alert("Please type an arena name!");
+    const newId = "arena_" + Date.now();
+    databaseState.tournaments[newId] = {
+        name: name, teamCount: count, players: [], bracket: generateTreeStructure(count)
+    };
+    nameInput.value = ""; countInput.value = "";
+    currentTourneyId = newId;
     await saveState();
 }
 
-async function updatePlayer(index, field, value) {
-    const players = getActivePlayers();
-    if (field === "name" || field === "tier") players[index][field] = value;
-    else players[index][field] = parseInt(value) || 0;
+window.renameActiveTournament = async function() {
+    const name = document.getElementById("activeTourneyRenameInput").value.trim();
+    if(!name) return;
+    databaseState.tournaments[currentTourneyId].name = name;
     await saveState();
 }
 
-async function removePlayer(index) {
-    if (!confirm("Delete this player?")) return;
-    getActivePlayers().splice(index, 1);
+window.changeActiveTeamsCount = async function() {
+    const c = parseInt(document.getElementById("activeTeamsCountModifier").value) || 8;
+    databaseState.tournaments[currentTourneyId].teamCount = c;
+    databaseState.tournaments[currentTourneyId].bracket = generateTreeStructure(c);
     await saveState();
 }
 
-function renderBrackets() {
-    const bracket = getActiveBracket();
-    renderPublicBracket(bracket);
-    renderAdminBracket(bracket);
-}
-
-function renderPublicBracket(bracket) {
-    document.getElementById("publicBracket").innerHTML = renderBracketHTML(bracket, false);
-}
-
-function renderAdminBracket(bracket) {
-    document.getElementById("adminBracket").innerHTML = renderBracketHTML(bracket, true);
-}
-
-function renderBracketHTML(bracket, isAdmin) {
-    let html = '<div class="bracket-round"><div class="bracket-round-title">Round 1</div>';
-    for (let i = 1; i <= 8; i++) {
-        const t1Key = `r1_${i}_t1`, t2Key = `r1_${i}_t2`;
-        const s1Key = `r1_${i}_s1`, s2Key = `r1_${i}_s2`;
-        if (bracket[t1Key]) {
-            html += `<div class="matchup">
-                <div class="bracket-team">
-                    ${isAdmin ? `<input class="team-name" value="${bracket[t1Key]}" onchange="updateBracketNode('${t1Key}', this.value)">` 
-                             : `<span class="public-team-name">${bracket[t1Key]}</span>`}
-                    <span class="public-score">${bracket[s1Key] || 0}</span>
-                </div>
-                <div class="bracket-team">
-                    ${isAdmin ? `<input class="team-name" value="${bracket[t2Key]}" onchange="updateBracketNode('${t2Key}', this.value)">` 
-                             : `<span class="public-team-name">${bracket[t2Key]}</span>`}
-                    <span class="public-score">${bracket[s2Key] || 0}</span>
-                </div>
-            </div>`;
-        }
+window.deleteActiveTournament = async function() {
+    if(!confirm("Delete arena?")) return;
+    delete databaseState.tournaments[currentTourneyId];
+    if(Object.keys(databaseState.tournaments).length === 0) {
+        databaseState.tournaments["default_arena"] = { name: "Alpha Tournament", teamCount: 8, players: [], bracket: {} };
     }
-    html += '</div>';
-    return html;
-}
-
-function updateBracketNode(key, value) {
-    getActiveBracket()[key] = value;
-}
-
-async function saveBracketEdits() {
+    currentTourneyId = Object.keys(databaseState.tournaments)[0];
     await saveState();
-    alert("Bracket saved!");
 }
-
-let pongGame = { ballSpeed: 3, playerY: 200, ballX: 400, ballY: 225, ballSpeedX: 3, ballSpeedY: 3, p1Score: 0, p2Score: 0 };
-
-function startPongEasterEgg() {
-    document.getElementById("pongWrapper").style.display = "flex";
-    initPong();
-}
-
-function closePongGame() {
-    document.getElementById("pongWrapper").style.display = "none";
-    pongGame = { ballSpeed: 3, playerY: 200, ballX: 400, ballY: 225, ballSpeedX: 3, ballSpeedY: 3, p1Score: 0, p2Score: 0 };
-}
-
-function updateSliderSpeed(value) {
-    pongGame.ballSpeed = parseInt(value);
-    document.getElementById("speedVal").innerText = value;
-}
-
-function initPong() {
-    const canvas = document.getElementById("pongCanvas");
-    const ctx = canvas.getContext("2d");
-    const loop = setInterval(() => {
-        ctx.fillStyle = "#111216";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = "white";
-        ctx.fillRect(10, pongGame.playerY, 10, 50);
-        ctx.fillRect(canvas.width - 20, 175, 10, 50);
-        ctx.beginPath();
-        ctx.arc(pongGame.ballX, pongGame.ballY, 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        pongGame.ballX += pongGame.ballSpeedX * pongGame.ballSpeed;
-        pongGame.ballY += pongGame.ballSpeedY * pongGame.ballSpeed;
-        
-        if (pongGame.ballY < 5 || pongGame.ballY > canvas.height - 5) {
-            pongGame.ballSpeedY *= -1;
-        }
-        
-        if (pongGame.ballX < 30 && pongGame.ballY > pongGame.playerY && pongGame.ballY < pongGame.playerY + 50) {
-            pongGame.ballSpeedX *= -1;
-        }
-        
-        if (pongGame.ballX < 0) pongGame.p2Score++, resetBall();
-        if (pongGame.ballX > canvas.width) pongGame.p1Score++, resetBall();
-        
-        ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText(`${pongGame.p1Score} | ${pongGame.p2Score}`, canvas.width / 2 - 30, 30);
-        
-        if (pongGame.p1Score >= 10 || pongGame.p2Score >= 10) {
-            clearInterval(loop);
-            alert(`${pongGame.p1Score >= 10 ? "Player 1" : "CPU"} wins!`);
-            closePongGame();
-        }
-    }, 20);
-    
-    document.addEventListener("mousemove", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        pongGame.playerY = e.clientY - rect.top - 25;
-    });
-}
-
-function resetBall() {
-    pongGame.ballX = 400;
-    pongGame.ballY = 225;
-    pongGame.ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 3;
-    pongGame.ballSpeedY = (Math.random() - 0.5) * 4;
-}
-
-function initBackgroundCanvas() {
-    const canvas = document.getElementById("bg-canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    const particles = [];
-    for (let i = 0; i < 50; i++) {
-        particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2,
-            speedX: (Math.random() - 0.5) * 0.5,
-            speedY: (Math.random() - 0.5) * 0.5
-        });
-    }
-    
-    setInterval(() => {
-        ctx.fillStyle = "rgba(8, 9, 10, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = "rgba(231, 76, 60, 0.3)";
-        particles.forEach(p => {
-            p.x += p.speedX;
-            p.y += p.speedY;
-            if (p.x < 0) p.x = canvas.width;
-            if (p.y < 0) p.y = canvas.height;
-            if (p.x > canvas.width) p.x = 0;
-            if (p.y > canvas.height) p.y = 0;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-        });
-    }, 30);
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    initBackgroundCanvas();
-});
 </script>
 </body>
 </html>
