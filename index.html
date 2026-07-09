@@ -662,7 +662,7 @@ let currentTourneyId = "default_arena";
 let hasAdminSession = false; // Changed from isAdminLoggedIn to track the overall session
 
 let databaseState = {
-    adminPassword: "admin",
+    adminPassword: "pergeisgoated123",
     tournaments: {
         "default_arena": {
             name: "Alpha Tournament",
@@ -1069,30 +1069,35 @@ window.deletePlayer = async function(index) {
 
 window.login = function() {
     const passwordInput = document.getElementById("password");
-    const inputPass = passwordInput.value;
+    if (!passwordInput) return;
+    
+    const inputPass = passwordInput.value.trim(); // .trim() handles accidental spacing issues
     const operationalPassword = databaseState.adminPassword || "urfat";
     
-    // The Ultimate Prank Redirection
+    // 1. Check Prank Redirect First
     if (inputPass === "pergeisgoated123") {
         passwordInput.value = "";
         window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
         return;
     }
 
-    // Check Easter Egg trigger
+    // 2. Check Pong Easter Egg Second
     if (inputPass === "pong") {
         passwordInput.value = "";
-        if (typeof startPongEasterEgg === "function") {
+        if (typeof window.startPongEasterEgg === "function") {
+            window.startPongEasterEgg();
+        } else if (typeof startPongEasterEgg === "function") {
             startPongEasterEgg();
         } else {
-            alert("Secret Pong Arena activated! (Make sure your pong initialization script is loaded)");
+            alert("Secret Pong Arena activated!");
         }
         return;
     }
     
+    // 3. Verify standard Database Password Third
     if (inputPass === operationalPassword) {
         passwordInput.value = "";
-        hasAdminSession = true; // Session unlocked
+        hasAdminSession = true; 
         window.switchPanel('admin');
     } else {
         alert("Access Denied.");
