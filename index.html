@@ -933,15 +933,17 @@ function updateLeaderboards() {
 }
 
 
-/* ================= RENDERING FIX: SKILL TIER LIST ================= */
+/* ================= RENDERING & DRAG-AND-DROP: SKILL TIER LIST ================= */
 function renderTierList() {
     const tiers = ['S', 'A', 'B', 'C', 'D', 'F'];
-    // Reset all tier panels safely
+    
+    // 1. Clear all tier panels safely before rendering updated state
     tiers.forEach(t => {
         const targetElement = document.getElementById(`tier-${t}-content`);
         if (targetElement) targetElement.innerHTML = "";
     });
 
+    // 2. Populate player badges into their assigned rows
     const players = getActivePlayers();
     players.forEach(player => {
         if (player.tier && tiers.includes(player.tier.toUpperCase())) {
@@ -949,11 +951,72 @@ function renderTierList() {
             if (container) {
                 const badge = document.createElement("div");
                 badge.className = `tier-badge badge-${player.tier.toLowerCase()}`;
+                
+                // Add tracking attribute so Sortable knows who is who when dropped
+                badge.setAttribute('data-name', player.name);
+                badge.style.cursor = 'grab';
+                
                 badge.innerHTML = `${player.name} <span style="font-size:0.75rem; opacity:0.6; margin-left:4px;">(${kd(player.kills, player.deaths)} K/D)</span>`;
                 container.appendChild(badge);
             }
         }
     });
+
+    // 3. Initialize SortableJS on containers if it hasn't been set up yet
+    tiers.forEach(t => {
+        const el = document.getElementById(`tier-${t}-content`);
+        if (el && !el.dataset.sortableInitialized) {
+            Sortable.create(el, {
+                group: 'sharedSkillTiers', // Allows dragging elements across rows
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: async () => {
+                    // Fires instantly when a user drops a player badge anywhere
+                    await saveDraggedTiers();
+                }
+            });
+            el.dataset.sortableInitialized = "true";
+        }
+    });
+}
+
+async function saveDraggedTiers() {
+    const tiers = ['S', 'A', 'B', 'C', 'D', 'F'];
+    const currentPlayers = getActivePlayers();
+    
+    // Create a quick lookup map of current player stats by name
+    const playerMap = {};
+    currentPlayers.forEach(p => {
+        playerMap[p.name] = { ...p };
+    });
+
+    const updatedPlayersList = [];
+    
+    // Scan the actual DOM layout row-by-row to capture new tier positions and horizontal sorting
+    tiers.forEach(t => {
+        const container = document.getElementById(`tier-${t}-content`);
+        if (container) {
+            const badges = container.querySelectorAll('.tier-badge');
+            badges.forEach(badge => {
+                const name = badge.getAttribute('data-name');
+                if (playerMap[name]) {
+                    playerMap[name].tier = t; // Update tier property string
+                    updatedPlayersList.push(playerMap[name]); // Save in new sorted order
+                }
+            });
+        }
+    });
+
+    // Append back any players that are currently "Unassigned" so they don't get deleted
+    currentPlayers.forEach(p => {
+        if (!p.tier || p.tier === 'Unassigned' || !tiers.includes(p.tier.toUpperCase())) {
+            updatedPlayersList.push(p);
+        }
+    });
+
+    // Update state and push to Firebase ecosystem document
+    databaseState.tournaments[currentTourneyId].players = updatedPlayersList;
+    await saveState();
 }
 
 
